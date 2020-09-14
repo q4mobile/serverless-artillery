@@ -6,7 +6,6 @@ run-test:
   script:
     - npm run lint
     - npm test
-    - npm run test-upgrade
 
 aws-integration-test:
   image: gitlab-registry.nordstrom.com/cicd/images/incubator/artillery:unstable
@@ -19,9 +18,8 @@ aws-integration-test:
     - cd slsart-test
     - ../bin/serverless-artillery configure
 
-    # Check the `script` and `update` commands
+    # Check the `script` command
     - ../bin/serverless-artillery script
-    - ../bin/serverless-artillery upgrade
 
     # Validate minimal use case is working
     - ../bin/serverless-artillery deploy --stage test
