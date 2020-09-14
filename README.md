@@ -141,8 +141,6 @@ Serverless-artillery makes it easy to test your services for performance and fun
     - [Run `script.yml` exclusively in monitoring mode](#run-scriptyml-exclusively-in-monitoring-mode)
     - [Use same `script.yml` for performance and acceptance testing and monitoring](#use-same-scriptyml-for-performance-and-acceptance-testing-and-monitoring-1)
     - [To configure monitoring behavior](#to-configure-monitoring-behavior)
-- [Upgrading customized projects built with older versions of serverless-artillery](#upgrading-customized-projects-built-with-older-versions-of-serverless-artillery)
-  - [Known Upgrade Issues](#known-upgrade-issues)
 - [Detailed Usage](#detailed-usage)
   - [Commands](#commands)
     - [`deploy`](#deploy)
@@ -151,7 +149,6 @@ Serverless-artillery makes it easy to test your services for performance and fun
     - [`remove`](#remove)
     - [`script`](#script)
     - [`configure`](#configure)
-    - [`upgrade`](#upgrade)
 - [Troubleshooting](#troubleshooting)
   - [Problems installing?](#problems-installing)
 - [External References](#external-references)
@@ -456,7 +453,7 @@ service: serverless-artillery-XnBa473psJ
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs10.x
   iamRoleStatements:
     # This policy allows the function to invoke itself which is important if the script is larger than a single
     # function can produce
@@ -1848,60 +1845,6 @@ sampling:
   errorBudget: 4     # The number of observed errors to accept before alerting
 ```
 
-# Upgrading customized projects built with older versions of serverless-artillery
-If you had built a custom test project (in order to customize the deployment assets) with an older version of serverless-artillery, then you might need to upgrade the project in order to use features of newer version of serverless-artillery. For example, serverless-artillery's monitoring mode requires certain deployment assets (configured in `serverless.yml`), that are not part of the configuration defined in `serverless.yml` created by `slsart configure` command of the older versions of serverless-artillery. Hence if you were to try monitoring on such test project then it would not work.
-
-We have added `slsart upgrade` command in order to make it easier for you to upgrade such custom test projects. Please note that you might have to manually add your customizations in the upgraded test project.
-
-```
-slsart upgrade
-
-Upgrading project...
-Cleaning project by deleting node_modules and package-lock.json ...done.
-
-Backing up existing project files to `backup` directory ...
-handler.js -> backup/handler.js ✔
-package.json -> backup/package.json ✔
-serverless.yml -> backup/serverless.yml ✔
-Backup complete.
-
-upgrading to version 0.0.1 ...done.
-Executing `npm install` to provide dependencies to the upgraded project ...
-[ NPM install output here ]
-
-Upgrade complete.
-
-Existing project files were copied to `backup`.
-
-It's possible that the upgraded project contained additional customizations:
-Diff `backup` with `original-assets-0.0.0` to understand how the project was originally customized.
-Diff `serverless.yml` with `backup/serverless.yml` to compare the previous cloud resources with the upgraded service.
-Diff `project.json` with `backup/project.json` to compare the changes in project dependencies.
-
-Please merge any missing customizations into the project to complete the upgrade.
-
-```
-
-## Known Upgrade Issues
-
-It's possible that the upgrade fails with this error:
-```
-UpdatePreconditionError: Invalid package.json dependency package version found:
-        csv-parse expected ^1.1.7 found ^1.3.3
-```
-
-Do the following to work-around this error:
-
-1) Delete the backup directory which we created by the failed upgrade.
-2) Modify the existing `package.json` dependency for `csv-parse` to version `^1.1.7`:
-```
-"csv-parse": "^1.1.7"
-```
-3) Run the upgrade again:
-```
-slsart upgrade
-```
-
 # Detailed Usage
 ```
 $ slsart --help
@@ -1932,7 +1875,6 @@ Commands:
   slsart configure  Create a local copy of the deployment assets for
                     modification and deployment.  See
                     https://serverless.com/framework/docs/ for documentation.
-  slsart upgrade    Upgrade local assets to latest version.
 
 Options:
   --help         Show help                                             [boolean]
@@ -2082,51 +2024,6 @@ Options:
   -V, --verbose  Execute the command in verbose mode.  It will be chatty about
                  what it is attempting to accomplish.
 ```
-
-### `upgrade`
-```
-slsart upgrade --help
-```
-```
-slsart upgrade
-
-Upgrade local assets to latest version.
-
-Options:
-  --help         Show help                                             [boolean]
-  --version      Show version number                                   [boolean]
-  -D, --debug    Execute the command in debug mode.  It will be chatty about
-                 what it is happening in the code.
-  -V, --verbose  Execute the command in verbose mode.  It will be chatty about
-                 what it is attempting to accomplish.
-```
-
-# Automated Deployment
-
-### Deployment Role Permissions
-
-Cloud service roles that deploy SA as part of a pipeline require the appropriate set of permissions to create, update or delete resources.
-
-#### AWS
-
-For AWS, the minimum set of permissions needed for deployment are defined in [aws-iam-deployment-policy.json](./aws-iam-deployment-policy.json).
-This may be used to create a managed policy in you AWS account.
-For example, this command will create a new policy named `serverless-artillery-deployment-policy`:
-```
-aws iam create-policy \
-  --policy-name serverless-artillery-deployment-policy \
-  --policy-document file://aws-iam-deployment-policy.json
-```
-
-Attach that policy to the role used to build.
-Find the Arn for the policy just created from the output above and attach using `attach-role-policy`, e.g.:
-```
-aws iam attach-role-policy \
-  --role-name buildRoleName \
-  --policy-arn arn:aws:iam::999999999999:policy/serverless-artillery-deployment-policy
-```
-
-The build role now has permissions to deploy SA resources to AWS.
 
 # Troubleshooting
 ### Problems installing?
