@@ -7,6 +7,136 @@ run-test:
     - npm run lint
     - npm test
 
+.remove-attached-policies: &remove-attached-policies
+- |
+  function delete_role {
+    local roleId=$1
+    echo "Deleting role ${roleId} ..."
+    aws iam delete-role --role-name ${roleId}
+    echo "Role deleted."
+  }
+
+  function remove_policies_from_role {
+    local roleId=$1
+    echo "Removing policies from role ${roleId}..."
+
+    while [ true ]
+    do
+      local rolePoliciesJSON=$(aws iam list-role-policies --role-name ${roleId})
+
+      #echo "Policies JSON:"
+      #echo "${rolePoliciesJSON}"
+
+      local policyNames=$(echo "${rolePoliciesJSON}" | jq -r ".PolicyNames[]")
+
+      if [ "${policyNames}" = "" ]; then
+        break
+      fi
+
+      echo "${policyNames}" |
+        while read policyName;
+        do
+          echo "Deleting policy ${policyName} on ${roleId}"
+          aws iam delete-role-policy --role-name ${roleId} --policy-name ${policyName}
+          echo "Policy ${policyName} deleted."
+        done
+    done
+
+    echo "Policies deleted."
+  }
+
+  function remove_attached_policies_from_role {
+    local roleId=$1
+    echo "Removing attached policies from role ${roleId}..."
+
+    while [ true ]
+    do
+      local attachedRolePoliciesJSON=$(aws iam list-attached-role-policies --role-name ${roleId})
+
+      #echo "Attached policies JSON:"
+      #echo "${attachedRolePoliciesJSON}"
+
+      local attachedPolicyARNs=$(echo "${attachedRolePoliciesJSON}" | jq -r ".AttachedPolicies[].PolicyArn")
+
+      if [ "${attachedPolicyARNs}" = "" ]; then
+        break
+      fi
+
+      echo "${attachedPolicyARNs}" |
+        while read policyArn;
+        do
+          echo "Deleting policy ${policyArn} on ${roleId}"
+          aws iam detach-role-policy --role-name ${roleId} --policy-arn ${policyArn}
+          echo "Policy ${policyArn} detatched."
+        done
+    done
+
+    echo "Attached policies removed."
+  }
+
+  function get_iam_role_for_stack {
+    local stackName=$1
+    local awsCommand="aws cloudformation describe-stack-resources --region=us-east-1 --stack-name ${stackName}"
+    local jQuery='.StackResources[] | select(.ResourceType == "AWS::IAM::Role") | .PhysicalResourceId'
+    local iamRoleId=$(${awsCommand} | jq -r "${jQuery}")
+
+    echo ${iamRoleId}
+  }
+
+  function wait_for_stack_creation {
+    local stackName=$1
+    local awsCommand="aws cloudformation describe-stack-resources --region=us-east-1 --stack-name ${stackName}"
+    local jQuery='[.StackResources[] | select(.ResourceStatus == "CREATE_IN_PROGRESS")] | length'
+
+    #echo ${awsCommand}
+    #echo ${jQuery}
+
+    echo "Checking stack ${stackName} for resources which are getting created."
+
+    #local awsResult=$(${awsCommand})
+    #echo "${awsResult}"
+
+    local createingCount=$(${awsCommand} | jq -r "${jQuery}")
+    while [ ${createingCount} -gt 0 ]
+      do
+        echo "Found ${creatingCount} resources being created; waiting 10s ..."
+        sleep 10
+        export createingCount=$(${awsCommand} | jq -r "${jQuery}")
+      done
+
+    echo "Stack resources have been created."
+  }
+
+  function cleanup_artillery_test_stack {
+    local stackName=$1
+
+    echo "Cleaning up stack ${stackName} ..."
+    wait_for_stack_creation ${stackName}
+    local iamRole=$(get_iam_role_for_stack ${stackName})
+
+    if [ "${iamRole}" = "" ]; then
+      echo "No role found for ${stackName}, skipping."
+      return
+    fi
+
+    echo "Found ${iamRole} role"
+    remove_attached_policies_from_role ${iamRole}
+    remove_policies_from_role ${iamRole}
+    delete_role ${iamRole}
+  }
+
+  function cleanup_artillery_test_stacks {
+    local artilleryStacks=$(aws cloudformation describe-stacks --region=us-east-1 | jq -r '.Stacks[].StackName | select(. | match("^serverless.*-test$"))')
+
+    echo "${artilleryStacks}" |
+      while read stackName;
+      do
+        cleanup_artillery_test_stack ${stackName}
+      done
+  }
+
+  cleanup_artillery_test_stacks
+
 aws-integration-test:
   image: gitlab-registry.nordstrom.com/cicd/images/incubator/artillery:unstable
   script:
@@ -24,6 +154,7 @@ aws-integration-test:
     # Validate minimal use case is working
     - ../bin/serverless-artillery deploy --stage test
     - ../bin/serverless-artillery invoke --stage test
+    - *remove-attached-policies
     - ../bin/serverless-artillery remove --stage test
 
     # Clean up
