@@ -7,7 +7,11 @@ run-test:
     - npm run lint
     - npm test
 
-.remove-attached-policies: &remove-attached-policies
+# Due to policies attached by Nordstrom cloud team after the 
+# stack is deployed, simply deleting the stack will fail.
+# Mitigate this by removing all policies and deleting the deployed role
+# using the AWS CLI and JQ.
+.remove-policies-and-delete-role: &remove-policies-and-delete-role
 - |
   function delete_role {
     local roleId=$1
@@ -16,7 +20,7 @@ run-test:
     echo "Role deleted."
   }
 
-  function remove_policies_from_role {
+  function remove_inline_policies_from_role {
     local roleId=$1
     echo "Removing policies from role ${roleId}..."
 
@@ -121,7 +125,7 @@ run-test:
 
     echo "Found ${iamRole} role"
     remove_attached_policies_from_role ${iamRole}
-    remove_policies_from_role ${iamRole}
+    remove_inline_policies_from_role ${iamRole}
     delete_role ${iamRole}
   }
 
@@ -154,7 +158,7 @@ aws-integration-test:
     # Validate minimal use case is working
     - ../bin/serverless-artillery deploy --stage test
     - ../bin/serverless-artillery invoke --stage test
-    - *remove-attached-policies
+    - *remove-policies-and-delete-role
     - ../bin/serverless-artillery remove --stage test
 
     # Clean up
