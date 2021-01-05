@@ -4,7 +4,7 @@
   "repository": "n/a",
   "license": "Apache-2.0",
   "dependencies": {
-    "artillery": "git+https://github.com/stanyq4/artillery.git#0c1bdb7c19c681376423f1939ea584609abfb859",
+    "artillery": "git+https://github.com/q4mobile/artillery.git#0c1bdb7c19c681376423f1939ea584609abfb859",
     "js-yaml": "^3.13.1",
     "lodash.merge": "^4.6.2",
     "lodash.omit": "^4.5.0",

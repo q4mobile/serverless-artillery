@@ -1,0 +1,24 @@
+# HTTP
+# https://q4websystems.atlassian.net/wiki/spaces/EP/pages/1940914360/Load+Testing+Framework+Instructions+Results
+config:
+  target: "https://events-platform-api.dev.q4api.com/graphql"
+  ensure:
+    max: 500 # fail if max response time exceeds 500ms
+    maxErrorRate: 1 # fail if error rate exceeds 1%
+  phases:
+    - duration: 60
+      arrivalRate: 10
+scenarios:
+  - name: "Perform CreateQuestion mutation"
+    flow:
+      - post:
+          url: "https://events-platform-api.dev.q4api.com/graphql"
+          headers:
+            content-type: "application/json"
+            Origin: "http://artillery-load-test"
+            authorization: "Bearer {TOKEN}"
+          body: '{"operationName":null,"variables":{},"query":"mutation {\n  createParticipant(eventId: 379764074, source: WEB, name: \"test\", eventRole: \"manager\") {\n    name\n    id\n  }\n}\n"}'
+          capture:
+            json: "data"
+            as: "data"
+      - log: "GQL Data: {{ data }}"
