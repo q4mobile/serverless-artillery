@@ -1,13 +1,13 @@
 # Sockets
 # https://q4websystems.atlassian.net/wiki/spaces/EP/pages/1940914360/Load+Testing+Framework+Instructions+Results
 config:
-  target: "https://events-platform-api.dev.q4api.com/graphql?token=Bearer {TOKEN}"
+  target: "http://events-platform-api-manual2-85587084.us-east-1.elb.amazonaws.com/graphql"
   ensure:
     max: 500 # fail if max response time exceeds 500ms
     maxErrorRate: 1 # fail if error rate exceeds 1%
   phases:
     - duration: 60
-      arrivalRate: 10
+      arrivalRate: 1
   ws:
     # Ignore SSL certificate errors
     # - useful in *development* with self-signed certs
@@ -16,16 +16,20 @@ scenarios:
   - engine: "wsgql"
     name: "Perform onParticipantCreated subscription"
     flow:
-      - send: {"id":"1","type":"start","payload":{
-        "query":
-          "subscription {
-                onParticipantCreated(eventId:379764074) {
+      - send: {
+        "id":"1",
+        "type":"start",
+        "payload":{
+            "authorization": "Bearer {TOKEN}",
+            "query":
+            "subscription {
+                onParticipantCreated(eventId:828638466) {
                   id
                   name
                   source
                 }
              }",
-        "variables":null
+          "variables":null,
+      },
       }
-      }
-      - think: 1
+      - think: 121
