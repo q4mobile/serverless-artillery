@@ -1,0 +1,21 @@
+config:
+  target: "https://streaming.stage.events.q4inc.com"
+  ensure:
+    max: 5000 # fail if max response time exceeds 2000ms
+    maxErrorRate: 0 # fail if error rate exceeds 2%
+  phases:
+    - duration: 60          # 10 min
+      arrivalRate: 834         # 100 requests per second
+      # rampTo: 1667             # 1000 requests per second
+      name: "Perform Serverless lambda load test 60-1667"
+scenarios:
+  - name: "Perform Serverless lambda load test 60-1667"
+    flow:
+      - get:
+          url: "/conference/298827828"
+          headers:
+            "X-Api-Key": ""
+      - get:
+          url: "/loadtest/{{ $randomString() }}"
+          headers:
+            "X-Api-Key": ""
