@@ -5,9 +5,9 @@ config:
     maxErrorRate: 0 # fail if error rate exceeds 2%
   phases:
     - duration: 600           # 10 min
-      arrivalRate: 166         # 100 requests per second
+      arrivalRate: 400         # 100 requests per second
       # rampTo: 332             # 1000 requests per second
-      name: "Perform Attendee load test 600-332"
+      name: "Perform Attendee load test 600-350"
   ws:
     rejectUnauthorized: false
     token: "Bearer "
