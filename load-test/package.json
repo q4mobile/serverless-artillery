@@ -1,0 +1,18 @@
+{
+  "version": "0.0.2",
+  "description": "A load generator function implementation",
+  "repository": "n/a",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "artillery": "git+https://github.com/q4mobile/artillery.git#master",
+    "js-yaml": "^3.13.1",
+    "lodash.merge": "^4.6.2",
+    "lodash.omit": "^4.5.0",
+    "util-promisify": "^2.1.0",
+    "snyk": "^1.316.1"
+  },
+  "scripts": {
+    "snyk-protect": "snyk protect"
+  },
+  "snyk": true
+}
