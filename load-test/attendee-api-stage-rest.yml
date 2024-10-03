@@ -1,0 +1,55 @@
+config:
+  target: "https://attendees.stage.events.q4inc.com/rest/v1"
+  ensure:
+    max: 5000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 0 # fail if error rate exceeds 0%
+  phases:
+    - duration: 60           # 5 min
+      arrivalRate: 166        # 166 attendee's per second ~ 10k per minute
+      name: "Perform Attendee load test 300-166-179891951-auth"
+scenarios:
+  - name: "Perform Attendee http journey to console"
+    flow:
+      # - get:
+      #     url: "/flags"
+      # - get:
+      #     url: "/event/179891951"
+      # - get:
+      #     url: "/attendee/public/profile?authToken=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlMzaU1zRFdaWTI0VjI1NG9ob0hqUCJ9.eyJuaWNrbmFtZSI6ImRteXRyby5rdWtoYXJlbmtvIiwibmFtZSI6ImRteXRyby5rdWtoYXJlbmtvQHE0aW5jLmNvbSIsInBpY3R1cmUiOiJodHRwczovL3MuZ3JhdmF0YXIuY29tL2F2YXRhci9iYTc0MjhhNWIyYTlmNTFjMWY2MGM4ZTViMjA5YjQyZD9zPTQ4MCZyPXBnJmQ9aHR0cHMlM0ElMkYlMkZjZG4uYXV0aDAuY29tJTJGYXZhdGFycyUyRmRtLnBuZyIsInVwZGF0ZWRfYXQiOiIyMDI0LTA1LTI3VDE4OjM4OjM1LjUyMloiLCJlbWFpbCI6ImRteXRyby5rdWtoYXJlbmtvQHE0aW5jLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJpc3MiOiJodHRwczovL2Rldi5sb2dpbi5xNGluYy5jb20vIiwiYXVkIjoiRllHZXJkS0R0SlBSY2FrM1Y5VEhUWERCRUpSVGJtWXYiLCJpYXQiOjE3MTY4MzUxMzIsImV4cCI6MTcyNDYxMTEzMiwic3ViIjoiZW1haWx8NjJkZWI0NTBiNDIzMDY4MWIzYTNhMzE4Iiwic2lkIjoiSzdRcm1OcXNQZVo5bTBZYkZVakwzRGF1Q2lPYUlWc0UiLCJub25jZSI6IlRFUnZjMncyT0Y5WE1sQXhOMmxCZEdSTlUyVlhTVkZZZG1SNVRXWXlmbWxFYVVGclducEhRMUZoT1E9PSJ9.nsVmkuCS7wfG1oFzMi6A3IQSUM4UgYmeAXxuaFS4UrguA8SkD4FdrRfgkjHzJCm73c1KArmeYzuUemDaVnnTpDWWJ_5-0gOsTJ3NhTchyQ2Xseb3zC1DoZYKYhf2AhBhsJDv1ePFB6UO7xFeoK0H2rbFo8aC7mM4upvSTSfTpDmloVag9ZLPbBUi8jbCc3Js3mCdiT7iPy1arIpNuebubhN7PsH7zEowdJBcNoQLC1Ebo7SFjr3nfsJY7PfVm3QrxotS8Vpm7AG16v5kg7oHFYVCBXvVTtKgvXLbZ2UWtYjbaEsSgHuRSbSXo0MmYwpHn2akugVONi39SHFx_bAU4A"
+      # # - think: 2
+      # - get:
+      #     url: "/event/179891951"
+      # - get:
+      #     url: "/flags"
+      # - get:
+      #     url: "/auth/token/179891951"
+      # - post:
+      #     url: "/attendee"
+      #     headers:
+      #       Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNzA4MjI5OCwiZXhwIjoxNzE3MTY4Njk4LCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6MjU3MzU3MTQ0IHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjI1NzM1NzE0NCIsInB1YmxpY1Rva2VuOnRydWUiXX0.LFsWLwt0dZCddF7RTEPyxsS2UIDGh0n72wCbezVoSipWLWzPmCdjHPf1Bm6Jh39wuAZmt3WX7-5GCakmlwWky0R0-ZHwEOs8Yj4S9E9sBZzQ9zYL5RhjZC10WFrb1yXGRXYIt08tzb-Gn3IiAT75uCrDDjYYHMr_8HS1MkNt3Po9Nsd7DUgpoRcdPrLtZnda5onlfEyM9yxTbMsktoXLw0oaz_urbigH3cbXCRjWTMUFy7zi95tJ1wT_UqRN2E4u7zoeW008qVHk8uefpXMzEYz2p7NcK_7oW2KP0lotBnm7XLSWV7C0W8HgqWTxr0o63FluT6ecZi49AuCjzG49VA"
+      #     json:
+      #       attendeeType: "GUEST"
+      #       email: "loading_test@gmail.com"
+      #       firstName: "Dmytro"
+      #       investorType: "individual"
+      #       lastName: "Kukharenko"
+      #       meetingId: 179891951
+      #       registrationType: "LOBBY"
+      #       sendReminderEmail: true
+      #       type: "Q4_LOGIN"
+      #       wsConnectionId: "6ae00c1a-1049-4b0f-b2eb-68bc74369a0c"
+      # - loop:
+      #     - get:
+      #         url: "/event/179891951/broadcast-status"
+      #         headers:
+      #           Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNzA4MjI5OCwiZXhwIjoxNzE3MTY4Njk4LCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6MjU3MzU3MTQ0IHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjI1NzM1NzE0NCIsInB1YmxpY1Rva2VuOnRydWUiXX0.LFsWLwt0dZCddF7RTEPyxsS2UIDGh0n72wCbezVoSipWLWzPmCdjHPf1Bm6Jh39wuAZmt3WX7-5GCakmlwWky0R0-ZHwEOs8Yj4S9E9sBZzQ9zYL5RhjZC10WFrb1yXGRXYIt08tzb-Gn3IiAT75uCrDDjYYHMr_8HS1MkNt3Po9Nsd7DUgpoRcdPrLtZnda5onlfEyM9yxTbMsktoXLw0oaz_urbigH3cbXCRjWTMUFy7zi95tJ1wT_UqRN2E4u7zoeW008qVHk8uefpXMzEYz2p7NcK_7oW2KP0lotBnm7XLSWV7C0W8HgqWTxr0o63FluT6ecZi49AuCjzG49VA"
+      #     - think: 25
+      #   count: 5
+      # - get:
+      #     url: "/event/179891951/slides"
+      #     headers:
+      #       Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNzA4MjI5OCwiZXhwIjoxNzE3MTY4Njk4LCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6MjU3MzU3MTQ0IHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjI1NzM1NzE0NCIsInB1YmxpY1Rva2VuOnRydWUiXX0.LFsWLwt0dZCddF7RTEPyxsS2UIDGh0n72wCbezVoSipWLWzPmCdjHPf1Bm6Jh39wuAZmt3WX7-5GCakmlwWky0R0-ZHwEOs8Yj4S9E9sBZzQ9zYL5RhjZC10WFrb1yXGRXYIt08tzb-Gn3IiAT75uCrDDjYYHMr_8HS1MkNt3Po9Nsd7DUgpoRcdPrLtZnda5onlfEyM9yxTbMsktoXLw0oaz_urbigH3cbXCRjWTMUFy7zi95tJ1wT_UqRN2E4u7zoeW008qVHk8uefpXMzEYz2p7NcK_7oW2KP0lotBnm7XLSWV7C0W8HgqWTxr0o63FluT6ecZi49AuCjzG49VA"
+      # - get:
+      #     url: "/event/179891951/broadcast-status"
+      #     headers:
+      #       Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNzA4MjI5OCwiZXhwIjoxNzE3MTY4Njk4LCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6MjU3MzU3MTQ0IHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjI1NzM1NzE0NCIsInB1YmxpY1Rva2VuOnRydWUiXX0.LFsWLwt0dZCddF7RTEPyxsS2UIDGh0n72wCbezVoSipWLWzPmCdjHPf1Bm6Jh39wuAZmt3WX7-5GCakmlwWky0R0-ZHwEOs8Yj4S9E9sBZzQ9zYL5RhjZC10WFrb1yXGRXYIt08tzb-Gn3IiAT75uCrDDjYYHMr_8HS1MkNt3Po9Nsd7DUgpoRcdPrLtZnda5onlfEyM9yxTbMsktoXLw0oaz_urbigH3cbXCRjWTMUFy7zi95tJ1wT_UqRN2E4u7zoeW008qVHk8uefpXMzEYz2p7NcK_7oW2KP0lotBnm7XLSWV7C0W8HgqWTxr0o63FluT6ecZi49AuCjzG49VA"

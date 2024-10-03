@@ -1,0 +1,52 @@
+config:
+  target: "https://attendees.dev.events.q4inc.com/rest/v1"
+  ensure:
+    max: 10000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 4 # fail if error rate exceeds 0%
+  phases:
+    - duration: 300           # 5 min
+      arrivalRate: 166        # 166 attendee's per second ~ 10k per minute
+      rampTo: 333
+      name: "Attendee rest load test 300-166->333-228179506-all"
+scenarios:
+  - name: "Perform Attendee http journey to console"
+    flow:
+      - get:
+          url: "/flags"
+      - get:
+          url: "/event/228179506"
+      - get:
+          url: "/attendee/public/profile?authToken=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlMzaU1zRFdaWTI0VjI1NG9ob0hqUCJ9.eyJuaWNrbmFtZSI6ImRteXRyby5rdWtoYXJlbmtvIiwibmFtZSI6ImRteXRyby5rdWtoYXJlbmtvQHE0aW5jLmNvbSIsInBpY3R1cmUiOiJodHRwczovL3MuZ3JhdmF0YXIuY29tL2F2YXRhci9iYTc0MjhhNWIyYTlmNTFjMWY2MGM4ZTViMjA5YjQyZD9zPTQ4MCZyPXBnJmQ9aHR0cHMlM0ElMkYlMkZjZG4uYXV0aDAuY29tJTJGYXZhdGFycyUyRmRtLnBuZyIsInVwZGF0ZWRfYXQiOiIyMDI0LTA1LTMwVDE0OjUxOjQzLjg4NFoiLCJlbWFpbCI6ImRteXRyby5rdWtoYXJlbmtvQHE0aW5jLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJpc3MiOiJodHRwczovL2Rldi5sb2dpbi5xNGluYy5jb20vIiwiYXVkIjoiRllHZXJkS0R0SlBSY2FrM1Y5VEhUWERCRUpSVGJtWXYiLCJpYXQiOjE3MTc0NDA4MDAsImV4cCI6MTcyNTIxNjgwMCwic3ViIjoiZW1haWx8NjJkZWI0NTBiNDIzMDY4MWIzYTNhMzE4Iiwic2lkIjoiYlA0R3Z6bHVRUmdDQ1liczhyOWxhQlhna1NtM3NxX08iLCJub25jZSI6IlV6aHJUVjlFTkdWamFXOStZa1JNU1ZSM1dITlZORVJrVDFKWGFIRTNhamt1U0dNMmZqbDVhVkV4YUE9PSJ9.Cf2CHJr5_bxhb_ooeAfaQ3ttWCmATLMeOCU5cfkmfdxLP0D_diC1zywKgkptiseXhNDglRW5e2bPevYUfpmDGpeR9wAu9WCDLZKBxPpCmNCM3V-4Lf0GXH7p0q5DtYJMwLIhVm4N4sl_xdwqD8paFRkIWw5D2o8YlloEy-iBRuGC_bhen7XHIhV9CT5CW_cRTETLa6tsuH94caGqbNOouQFkMIn-2yVgE77Fuo74vX7TMzuqn7Jhak2c163Yg16ZfHhb3GYFxmbUwqxQVhbU-g70kymbmy3gCU5imoaETKaOJH7b2rRYPwNFkeOAXOfooZ7R9VRngFpFCVRyehbh4w"
+      - think: 2
+      - get:
+          url: "/event/228179506"
+      - get:
+          url: "/flags"
+      - get:
+          url: "/auth/token/228179506"
+      - post:
+          url: "/attendee"
+          headers:
+            Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNzQ0MDgxMiwiZXhwIjoxNzE3NTI3MjEyLCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6MjI4MTc5NTA2IHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjIyODE3OTUwNiIsInB1YmxpY1Rva2VuOnRydWUiXX0.pJSMSpQTu0FJ_vhwSxoYcCxjufG8sq_dwSRQEIEqTaZTpkMwDEEtxABMfVwIxc433r2mbmh2HzN3YnkeeOvz3hS2ZdRl114EBwojoBrZjZgqu6z5OBMuqswvwKQLXv32JbPR2XglHtnLdxBzNg9d1EcUZmuxqpwCjNvs9Mqrdum3kY6Ho46VG13ofeJj7ox5G5im4E4PcL-AhFrGaKQVhSmt0CEf88dK60552svEmQZp55BmpufxgpC4wiMBvFRcuBoNs9p2mOm5HveMOvt-NitJDJ6Y9s7lzx2pRCMobN-dElXYkOGE6fKsydZeoZI7YVkBFNYwTZJgOt6c-QhJdg"
+          json:
+            attendeeType: "GUEST"
+            email: "{{ $randomString() }}@loading.com"
+            firstName: "{{ $randomString() }}"
+            investorType: "individual"
+            lastName: "{{ $randomString() }}"
+            meetingId: 228179506
+            registrationType: "LOBBY"
+            sendReminderEmail: true
+            type: "Q4_LOGIN"
+            wsConnectionId: "{{ $randomString() }}"
+      - loop:
+          - get:
+              url: "/event/228179506/broadcast-status"
+              headers:
+                Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNzQ0MDgxMiwiZXhwIjoxNzE3NTI3MjEyLCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6MjI4MTc5NTA2IHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjIyODE3OTUwNiIsInB1YmxpY1Rva2VuOnRydWUiXX0.pJSMSpQTu0FJ_vhwSxoYcCxjufG8sq_dwSRQEIEqTaZTpkMwDEEtxABMfVwIxc433r2mbmh2HzN3YnkeeOvz3hS2ZdRl114EBwojoBrZjZgqu6z5OBMuqswvwKQLXv32JbPR2XglHtnLdxBzNg9d1EcUZmuxqpwCjNvs9Mqrdum3kY6Ho46VG13ofeJj7ox5G5im4E4PcL-AhFrGaKQVhSmt0CEf88dK60552svEmQZp55BmpufxgpC4wiMBvFRcuBoNs9p2mOm5HveMOvt-NitJDJ6Y9s7lzx2pRCMobN-dElXYkOGE6fKsydZeoZI7YVkBFNYwTZJgOt6c-QhJdg"
+          - think: 25
+        count: 5
+      - get:
+          url: "/event/228179506/slides"
+          headers:
+            Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNzQ0MDgxMiwiZXhwIjoxNzE3NTI3MjEyLCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6MjI4MTc5NTA2IHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjIyODE3OTUwNiIsInB1YmxpY1Rva2VuOnRydWUiXX0.pJSMSpQTu0FJ_vhwSxoYcCxjufG8sq_dwSRQEIEqTaZTpkMwDEEtxABMfVwIxc433r2mbmh2HzN3YnkeeOvz3hS2ZdRl114EBwojoBrZjZgqu6z5OBMuqswvwKQLXv32JbPR2XglHtnLdxBzNg9d1EcUZmuxqpwCjNvs9Mqrdum3kY6Ho46VG13ofeJj7ox5G5im4E4PcL-AhFrGaKQVhSmt0CEf88dK60552svEmQZp55BmpufxgpC4wiMBvFRcuBoNs9p2mOm5HveMOvt-NitJDJ6Y9s7lzx2pRCMobN-dElXYkOGE6fKsydZeoZI7YVkBFNYwTZJgOt6c-QhJdg"

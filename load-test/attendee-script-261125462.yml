@@ -1,16 +1,15 @@
 config:
-  target: "wss://stage.events.q4inc.com/graphql?x-meeting-id=298827828&x-company-id=5ff782c52dab34000885fe61&ep-wss=true"
+  target: "wss://stage.events.q4inc.com/graphql?x-meeting-id=261125462&x-company-id=62bb11918808f7b6298c3776&ep-wss=true"
   ensure:
     max: 5000 # fail if max response time exceeds 5000ms
     maxErrorRate: 0 # fail if error rate exceeds 0%
   phases:
-    - duration: 300           # 10 min
-      arrivalRate: 332         # 166 attendee's per second
-      name: "Perform Attendee load test 300-350"
+    - duration: 300           # 5 min
+      arrivalRate: 322        # 166 attendee's per second ~ 10k per minute
+      name: "Perform Attendee load test 300-322-261125462"
   ws:
     rejectUnauthorized: false
-    token: "Bearer "
-    headers:
+    token: "Bearer
       Sec-WebSocket-Protocol: graphql-transport-ws
 scenarios:
   - name: "Perform Attendee http journey to console"
@@ -24,14 +23,14 @@ scenarios:
                 getFeatureFlags
               }
       - get:
-          url: "https://stage.events.q4inc.com/rest/event/298827828"
+          url: "https://stage.events.q4inc.com/rest/event/261125462"
       - get:
           url: "https://stage.events.q4inc.com/rest/event/features?eventType=earnings"
       - get:
-          url: "https://stage.events.q4inc.com/rest/organization/public-user-info?idToken"
+          url: "https://stage.events.q4inc.com/rest/organization/public-user-info?"
       - think: 2
       - get:
-          url: "https://stage.events.q4inc.com/rest/event/298827828"
+          url: "https://stage.events.q4inc.com/rest/event/261125462"
       - get:
           url: "https://stage.events.q4inc.com/rest/event/features?eventType=earnings"
       - post:
@@ -45,11 +44,11 @@ scenarios:
       - post:
           url: "https://stage.events.q4inc.com/rest/auth/guest/login"
           json:
-            meetingId: "298827828"
+            meetingId: "261125462"
       - post:
           url: "https://stage.events.q4inc.com/graphql"
           headers:
-            Authorization: "Bearer "
+            Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ing4dE5RMVY5Zm15MjVwSjFIeDFfVSJ9.eyJpc3MiOiJodHRwczovL2F1dGguc3RhZ2UucTRpbmMuY29tLyIsInN1YiI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyQGNsaWVudHMiLCJhdWQiOiJldmVudHMtcGxhdGZvcm0uYXBwIiwiaWF0IjoxNzE1MTA2NjAzLCJleHAiOjE3MTUxOTMwMDMsInNjb3BlIjoiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIGF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSBhdHRlbmRlZTpyZWFkOnF1ZXN0aW9ucyBhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIGF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IG1lZXRpbmdJZDoyNjExMjU0NjIgcHVibGljVG9rZW46dHJ1ZSIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyIsImF6cCI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyIiwicGVybWlzc2lvbnMiOlsiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIiwiYXR0ZW5kZWU6bWFuYWdlOmF0dGVuZGVlIiwiYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMiLCJhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6dmlldzpicm9hZGNhc3QiLCJtZWV0aW5nSWQ6MjYxMTI1NDYyIiwicHVibGljVG9rZW46dHJ1ZSJdfQ.YcN1mViVowXw1j6IgXyRJgr0ZS0O-uEVY9ZOgkm0t3lrssiRJHukSSQy7G9TwvpOTImaVDW1_LLzNGlSBcr0AL52vPVyPDZUxs_XxkQg4BPxT3UM8Suq3aOBPUQX4NXzBPIN_iYfaKQj7Yq7E0OhvnvnLWpNkcq5H-tOaRI8h499vLQeABtXcNAjKHzYTfz37Kw7l9lBxnzL2peicqDvzuvhU-AMmE0AkKJpTPgZJ8z9cM8CBQ71jtw2LRnJ2z3wtXywELfbFF-MeIDVyYRMHuADK_xxmbZkC00NW3KzEQHaOHOmxEilTjKJThXDXTIq-Xc0Wii6aoskFtnI5ENfbQ"
           json:
             operationName: "createAttendee"
             query: |
@@ -117,7 +116,7 @@ scenarios:
               firstName: "Loading"
               investorType: "individual"
               lastName: "Test"
-              meetingId: 298827828
+              meetingId: 261125462
               registrationType: "LOBBY"
               type: "GUEST"
               wsConnectionId: "6ae00c1a-1049-4b0f-b2eb-68bc74369a0c"
@@ -125,7 +124,7 @@ scenarios:
           - post:
               url: "https://stage.events.q4inc.com/graphql"
               headers:
-                Authorization: "Bearer "
+                Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ing4dE5RMVY5Zm15MjVwSjFIeDFfVSJ9.eyJpc3MiOiJodHRwczovL2F1dGguc3RhZ2UucTRpbmMuY29tLyIsInN1YiI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyQGNsaWVudHMiLCJhdWQiOiJldmVudHMtcGxhdGZvcm0uYXBwIiwiaWF0IjoxNzE1MTA2NjAzLCJleHAiOjE3MTUxOTMwMDMsInNjb3BlIjoiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIGF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSBhdHRlbmRlZTpyZWFkOnF1ZXN0aW9ucyBhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIGF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IG1lZXRpbmdJZDoyNjExMjU0NjIgcHVibGljVG9rZW46dHJ1ZSIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyIsImF6cCI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyIiwicGVybWlzc2lvbnMiOlsiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIiwiYXR0ZW5kZWU6bWFuYWdlOmF0dGVuZGVlIiwiYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMiLCJhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6dmlldzpicm9hZGNhc3QiLCJtZWV0aW5nSWQ6MjYxMTI1NDYyIiwicHVibGljVG9rZW46dHJ1ZSJdfQ.YcN1mViVowXw1j6IgXyRJgr0ZS0O-uEVY9ZOgkm0t3lrssiRJHukSSQy7G9TwvpOTImaVDW1_LLzNGlSBcr0AL52vPVyPDZUxs_XxkQg4BPxT3UM8Suq3aOBPUQX4NXzBPIN_iYfaKQj7Yq7E0OhvnvnLWpNkcq5H-tOaRI8h499vLQeABtXcNAjKHzYTfz37Kw7l9lBxnzL2peicqDvzuvhU-AMmE0AkKJpTPgZJ8z9cM8CBQ71jtw2LRnJ2z3wtXywELfbFF-MeIDVyYRMHuADK_xxmbZkC00NW3KzEQHaOHOmxEilTjKJThXDXTIq-Xc0Wii6aoskFtnI5ENfbQ"
               json:
                 operationName: "getEventBroadcastStatus"
                 query: |
@@ -138,13 +137,13 @@ scenarios:
                     }
                   }
                 variables:
-                  meetingId: 298827828
+                  meetingId: 261125462
           - think: 25
         count: 5  
       - post:
           url: "https://stage.events.q4inc.com/graphql"
           headers:
-            Authorization: "Bearer "
+            Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ing4dE5RMVY5Zm15MjVwSjFIeDFfVSJ9.eyJpc3MiOiJodHRwczovL2F1dGguc3RhZ2UucTRpbmMuY29tLyIsInN1YiI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyQGNsaWVudHMiLCJhdWQiOiJldmVudHMtcGxhdGZvcm0uYXBwIiwiaWF0IjoxNzE1MTA2NjAzLCJleHAiOjE3MTUxOTMwMDMsInNjb3BlIjoiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIGF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSBhdHRlbmRlZTpyZWFkOnF1ZXN0aW9ucyBhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIGF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IG1lZXRpbmdJZDoyNjExMjU0NjIgcHVibGljVG9rZW46dHJ1ZSIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyIsImF6cCI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyIiwicGVybWlzc2lvbnMiOlsiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIiwiYXR0ZW5kZWU6bWFuYWdlOmF0dGVuZGVlIiwiYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMiLCJhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6dmlldzpicm9hZGNhc3QiLCJtZWV0aW5nSWQ6MjYxMTI1NDYyIiwicHVibGljVG9rZW46dHJ1ZSJdfQ.YcN1mViVowXw1j6IgXyRJgr0ZS0O-uEVY9ZOgkm0t3lrssiRJHukSSQy7G9TwvpOTImaVDW1_LLzNGlSBcr0AL52vPVyPDZUxs_XxkQg4BPxT3UM8Suq3aOBPUQX4NXzBPIN_iYfaKQj7Yq7E0OhvnvnLWpNkcq5H-tOaRI8h499vLQeABtXcNAjKHzYTfz37Kw7l9lBxnzL2peicqDvzuvhU-AMmE0AkKJpTPgZJ8z9cM8CBQ71jtw2LRnJ2z3wtXywELfbFF-MeIDVyYRMHuADK_xxmbZkC00NW3KzEQHaOHOmxEilTjKJThXDXTIq-Xc0Wii6aoskFtnI5ENfbQ"
           json:
             operationName: "getUserControlledSlides"
             query: |
@@ -152,11 +151,11 @@ scenarios:
                 getUserControlledSlides(meetingId: $meetingId)
               }
             variables:
-              meetingId: 298827828
+              meetingId: 261125462
       - post:
           url: "https://stage.events.q4inc.com/graphql"
           headers:
-            Authorization: "Bearer "
+            Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ing4dE5RMVY5Zm15MjVwSjFIeDFfVSJ9.eyJpc3MiOiJodHRwczovL2F1dGguc3RhZ2UucTRpbmMuY29tLyIsInN1YiI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyQGNsaWVudHMiLCJhdWQiOiJldmVudHMtcGxhdGZvcm0uYXBwIiwiaWF0IjoxNzE1MTA2NjAzLCJleHAiOjE3MTUxOTMwMDMsInNjb3BlIjoiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIGF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSBhdHRlbmRlZTpyZWFkOnF1ZXN0aW9ucyBhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIGF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IG1lZXRpbmdJZDoyNjExMjU0NjIgcHVibGljVG9rZW46dHJ1ZSIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyIsImF6cCI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyIiwicGVybWlzc2lvbnMiOlsiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIiwiYXR0ZW5kZWU6bWFuYWdlOmF0dGVuZGVlIiwiYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMiLCJhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6dmlldzpicm9hZGNhc3QiLCJtZWV0aW5nSWQ6MjYxMTI1NDYyIiwicHVibGljVG9rZW46dHJ1ZSJdfQ.YcN1mViVowXw1j6IgXyRJgr0ZS0O-uEVY9ZOgkm0t3lrssiRJHukSSQy7G9TwvpOTImaVDW1_LLzNGlSBcr0AL52vPVyPDZUxs_XxkQg4BPxT3UM8Suq3aOBPUQX4NXzBPIN_iYfaKQj7Yq7E0OhvnvnLWpNkcq5H-tOaRI8h499vLQeABtXcNAjKHzYTfz37Kw7l9lBxnzL2peicqDvzuvhU-AMmE0AkKJpTPgZJ8z9cM8CBQ71jtw2LRnJ2z3wtXywELfbFF-MeIDVyYRMHuADK_xxmbZkC00NW3KzEQHaOHOmxEilTjKJThXDXTIq-Xc0Wii6aoskFtnI5ENfbQ"
           json:
             operationName: "createPreCallSession"
             query: |
@@ -169,7 +168,7 @@ scenarios:
       - post:
           url: "https://stage.events.q4inc.com/graphql"
           headers:
-            Authorization: "Bearer "
+            Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ing4dE5RMVY5Zm15MjVwSjFIeDFfVSJ9.eyJpc3MiOiJodHRwczovL2F1dGguc3RhZ2UucTRpbmMuY29tLyIsInN1YiI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyQGNsaWVudHMiLCJhdWQiOiJldmVudHMtcGxhdGZvcm0uYXBwIiwiaWF0IjoxNzE1MTA2NjAzLCJleHAiOjE3MTUxOTMwMDMsInNjb3BlIjoiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIGF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSBhdHRlbmRlZTpyZWFkOnF1ZXN0aW9ucyBhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIGF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IG1lZXRpbmdJZDoyNjExMjU0NjIgcHVibGljVG9rZW46dHJ1ZSIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyIsImF6cCI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyIiwicGVybWlzc2lvbnMiOlsiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIiwiYXR0ZW5kZWU6bWFuYWdlOmF0dGVuZGVlIiwiYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMiLCJhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6dmlldzpicm9hZGNhc3QiLCJtZWV0aW5nSWQ6MjYxMTI1NDYyIiwicHVibGljVG9rZW46dHJ1ZSJdfQ.YcN1mViVowXw1j6IgXyRJgr0ZS0O-uEVY9ZOgkm0t3lrssiRJHukSSQy7G9TwvpOTImaVDW1_LLzNGlSBcr0AL52vPVyPDZUxs_XxkQg4BPxT3UM8Suq3aOBPUQX4NXzBPIN_iYfaKQj7Yq7E0OhvnvnLWpNkcq5H-tOaRI8h499vLQeABtXcNAjKHzYTfz37Kw7l9lBxnzL2peicqDvzuvhU-AMmE0AkKJpTPgZJ8z9cM8CBQ71jtw2LRnJ2z3wtXywELfbFF-MeIDVyYRMHuADK_xxmbZkC00NW3KzEQHaOHOmxEilTjKJThXDXTIq-Xc0Wii6aoskFtnI5ENfbQ"
           json:
             query: |
               query myQuestion($userEmail: String!) {
@@ -188,7 +187,7 @@ scenarios:
       - post:
           url: "https://stage.events.q4inc.com/graphql"
           headers:
-            Authorization: "Bearer "
+            Authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ing4dE5RMVY5Zm15MjVwSjFIeDFfVSJ9.eyJpc3MiOiJodHRwczovL2F1dGguc3RhZ2UucTRpbmMuY29tLyIsInN1YiI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyQGNsaWVudHMiLCJhdWQiOiJldmVudHMtcGxhdGZvcm0uYXBwIiwiaWF0IjoxNzE1MTA2NjAzLCJleHAiOjE3MTUxOTMwMDMsInNjb3BlIjoiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIGF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSBhdHRlbmRlZTpyZWFkOnF1ZXN0aW9ucyBhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIGF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IG1lZXRpbmdJZDoyNjExMjU0NjIgcHVibGljVG9rZW46dHJ1ZSIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyIsImF6cCI6IlpCRkp5d0xVSTVzS1ZJVkM0bzA3dll3RUp0Z1lWZUcyIiwicGVybWlzc2lvbnMiOlsiYXR0ZW5kZWU6YmFzZTpwZXJtaXNzaW9uIiwiYXR0ZW5kZWU6bWFuYWdlOmF0dGVuZGVlIiwiYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMiLCJhdHRlbmRlZTpzdWJtaXQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6dmlldzpicm9hZGNhc3QiLCJtZWV0aW5nSWQ6MjYxMTI1NDYyIiwicHVibGljVG9rZW46dHJ1ZSJdfQ.YcN1mViVowXw1j6IgXyRJgr0ZS0O-uEVY9ZOgkm0t3lrssiRJHukSSQy7G9TwvpOTImaVDW1_LLzNGlSBcr0AL52vPVyPDZUxs_XxkQg4BPxT3UM8Suq3aOBPUQX4NXzBPIN_iYfaKQj7Yq7E0OhvnvnLWpNkcq5H-tOaRI8h499vLQeABtXcNAjKHzYTfz37Kw7l9lBxnzL2peicqDvzuvhU-AMmE0AkKJpTPgZJ8z9cM8CBQ71jtw2LRnJ2z3wtXywELfbFF-MeIDVyYRMHuADK_xxmbZkC00NW3KzEQHaOHOmxEilTjKJThXDXTIq-Xc0Wii6aoskFtnI5ENfbQ"
           json:
             query: |
               query ($meetingId: Int) {
@@ -197,7 +196,7 @@ scenarios:
                 }
               }
             variables:
-              meetingId: 298827828
+              meetingId: 261125462
   - engine: "wsgql"
     name: "Perform Attendee subscription journey to console"
     flow:
@@ -207,7 +206,7 @@ scenarios:
           "type": "subscribe",
           "payload": {
             "variables": {
-              meetingId: 298827828
+              meetingId: 261125462
             },
             "extensions": {},
             "operationName": "FEATURE_FLAG_SUBSCRIPTION",
@@ -219,7 +218,7 @@ scenarios:
           "type": "subscribe",
           "payload": {
             "variables": {
-              meetingId: 298827828
+              meetingId: 261125462
             },
             "extensions": {},
             "query": "subscription ($meetingId: Int) {
@@ -248,7 +247,7 @@ scenarios:
           "type": "subscribe",
           "payload": {
             "variables": {
-              meetingId: 298827828
+              meetingId: 261125462
             },
             "extensions": {},
             "query": "subscription ($meetingId: Int) {
@@ -261,7 +260,7 @@ scenarios:
           "type": "subscribe",
           "payload": {
             "variables": {
-              meetingId: 298827828
+              meetingId: 261125462
             },
             "extensions": {},
             "operationName": "BROADCAST_STATUS_SUBSCRIPTION",
@@ -280,7 +279,7 @@ scenarios:
           "type": "subscribe",
           "payload": {
             "variables": {
-              meetingId: 298827828
+              meetingId: 261125462
             },
             "extensions": {},
             "query": "subscription ($meetingId: Int) {
@@ -296,7 +295,7 @@ scenarios:
           "type": "subscribe",
           "payload": {
             "variables": {
-              meetingId: 298827828
+              meetingId: 261125462
             },
             "extensions": {},
             "operationName": "QUESTION_STATUS_SUBSCRIPTION",

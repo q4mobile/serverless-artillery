@@ -1,0 +1,128 @@
+config:
+  target: wss://attendees.events.q4inc.com/graphql?x-meeting-id=365301633&x-company-id=5f776bfcc97f0700078c8bfe&ep-wss=true
+  ensure:
+    max: 10000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 4 # fail if error rate exceeds 0%
+  phases:
+    - duration: 300           # 5 min
+      arrivalRate: 166        # 15k per minute
+      rampTo: 333
+      name: "Perform Attendee load test 300-166->333-365301633-all"
+  ws:
+    rejectUnauthorized: false
+    token: "Bearer
+    headers:
+      Sec-WebSocket-Protocol: graphql-transport-ws
+scenarios:
+  - engine: "wsgql"
+    name: "Perform Attendee subscription journey to console"
+    flow:
+      - think: 1
+      - send: {
+          "id": "1",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: 365301633
+            },
+            "extensions": {},
+            "operationName": "FEATURE_FLAG_SUBSCRIPTION",
+            "query": "subscription FEATURE_FLAG_SUBSCRIPTION { onFeatureFlagsChange }"
+          }
+        }
+      - send: {
+          "id": "2",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: 365301633
+            },
+            "extensions": {},
+            "query": "subscription ($meetingId: Int) {
+              onEventStartPeriodUpdated(meetingId: $meetingId) {
+                event {
+                  meetingId
+                  branding {
+                    registrationPageBranding {
+                      broadridgeTelephoneNumber 
+                      broadridgeInternationalTelephoneNumber 
+                      title 
+                      description 
+                      openRegistration 
+                      proxyWebsiteLink
+                      termsAndConditionsUrl
+                    }
+                  }
+                }
+                isEventStarted
+              }
+            }"
+          }
+        }
+      - send: {
+          "id": "3",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: 365301633
+            },
+            "extensions": {},
+            "query": "subscription ($meetingId: Int) {
+              onAssetsUpdated(meetingId: $meetingId, contentType: SLIDES)
+            }"
+          }
+        }
+      - send: {
+          "id": "4",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: 365301633
+            },
+            "extensions": {},
+            "operationName": "BROADCAST_STATUS_SUBSCRIPTION",
+            "query": "subscription BROADCAST_STATUS_SUBSCRIPTION($meetingId: Int) {
+              onBroadcastStatusUpdated(meetingId: $meetingId) {
+                status
+                context
+                startTime
+                broadcastUrl
+              }
+            }"
+          }
+        }
+      - send: {
+          "id": "5",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: 365301633
+            },
+            "extensions": {},
+            "query": "subscription ($meetingId: Int) {
+              onEventDisasterRecoveryUpdated(meetingId: $meetingId) {
+                enabled
+                redirectUrl
+              }
+            }"
+          }
+        }
+      - send: {
+          "id": "6",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: 365301633
+            },
+            "extensions": {},
+            "operationName": "QUESTION_STATUS_SUBSCRIPTION",
+            "query": "subscription ($meetingId: Int) {
+              onEventQuestionSettingUpdated(meetingId: $meetingId) {
+                settings {
+                  questionEnabled
+                }
+              }
+            }"
+          }
+        }
+      - think: 300
