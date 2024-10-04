@@ -1,13 +1,13 @@
-# ../bin/serverless-artillery invoke -p subscription-load-test.stage.yml
+../bin/serverless-artillery invoke -p subscription-load-test.stage.yml
 
 config:
   target: "https://stage.identity.q4inc.com"
   ensure:
     max: 10000 # fail if max response time exceeds 5000ms
-    maxErrorRate: 12 # fail if error rate exceeds 0%
+    maxErrorRate: 4 # fail if error rate exceeds 0%
   phases:
     - duration: 300 # 5 min
-      arrivalRate: 4 # 4 users per second ~ 200 per minutecala: 4, 8, 12, 20
+      arrivalRate: 4 # 4 users per second ~ 200 per minute
       rampTo: 6 #range of users per second
       name: "Q4 IDP Login Load Test 300-166->333-228179506-all"
 scenarios:
@@ -28,14 +28,14 @@ scenarios:
             username: "automation+corpuser-user@q4inc.com"
             password: "C]83HZ=,r)0=U2l23m.J"
             isRememberUsername: false
-      q4IdpClientId: "q4-platform-client"
+            q4IdpClientId: "q4-platform-client"
       # Password Reset Request
       - post:
           url: "https://stage.identity.q4inc.com/password/password-reset"
           json:
             email: "maryam.babalola+101@q4inc.com"
             q4IdpClientId: "q4-platform-client"
-      Setting Password
+      # Setting Password
       - get:
           url: "https://stage.identity.q4inc.com/oauth/auth?response_type=code&client_id=q4-platform-client&redirect_uri=https://connect.stage.q4inc.com/?login=v2&prompt=resetPassword&userCode=9e4382c9-4e81-45f3-82cb-8395aea4ab64&resource=https://connect.stage.q4inc.com"
       - think: 2

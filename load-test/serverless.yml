@@ -15,41 +15,41 @@ service: serverless-artillery-sYGltXkByr
 provider:
   name: aws
   runtime: nodejs16.x
+  stage: stage
   iamRoleStatements:
     # This policy allows the function to invoke itself which is important if the script is larger than a single
     # function can produce
-    - Effect: 'Allow'
+    - Effect: "Allow"
       Action:
-        - 'lambda:InvokeFunction'
+        - "lambda:InvokeFunction"
       Resource:
-        'Fn::Join':
-          - ':'
-          -
-            - 'arn:aws:lambda'
-            - Ref: 'AWS::Region'
-            - Ref: 'AWS::AccountId'
-            - 'function'
-            - '${self:service}-${opt:stage, self:provider.stage}-loadGenerator*' # must match function name
+        "Fn::Join":
+          - ":"
+          - - "arn:aws:lambda"
+            - Ref: "AWS::Region"
+            - Ref: "AWS::AccountId"
+            - "function"
+            - "${self:service}-${opt:stage, self:provider.stage}-loadGenerator*" # must match function name
     # This policy allows the function to publish notifications to the SNS topic defined below with logical ID monitoringAlerts
-    - Effect: 'Allow'
+    - Effect: "Allow"
       Action:
-        - 'sns:Publish'
+        - "sns:Publish"
       Resource:
         Ref: monitoringAlerts # must match the SNS topic's logical ID
 functions:
   loadGenerator: # !!Do not edit this name!!
-    handler: handler.handler    # the serverlessArtilleryLoadTester handler() method can be found in the handler.js source file
-    timeout: 300                # set timeout to be 5 minutes (max for Lambda)
+    handler: handler.handler # the serverlessArtilleryLoadTester handler() method can be found in the handler.js source file
+    timeout: 300 # set timeout to be 5 minutes (max for Lambda)
     environment:
       TOPIC_ARN:
         Ref: monitoringAlerts
       TOPIC_NAME:
-        'Fn::GetAtt':
+        "Fn::GetAtt":
           - monitoringAlerts
           - TopicName
     events:
       - schedule:
-          name: '${self:service}-${opt:stage, self:provider.stage}-monitoring' # !!Do not edit this name!!
+          name: "${self:service}-${opt:stage, self:provider.stage}-monitoring" # !!Do not edit this name!!
           description: The scheduled event for running the function in monitoring mode
           rate: rate(1 minute)
           ########################################################################################################################
@@ -71,14 +71,14 @@ functions:
           ########################################################################################################################
           enabled: false
           input:
-            '>>': script.yml
+            ">>": script.yml
             mode: monitoring
 resources:
   Resources:
     monitoringAlerts: # !!Do not edit this name!!
-      Type: 'AWS::SNS::Topic'
+      Type: "AWS::SNS::Topic"
       Properties:
-        DisplayName: '${self:service} Monitoring Alerts'
+        DisplayName: "${self:service} Monitoring Alerts"
 #        Subscription: # docs at https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-sns-subscription.html
 #          - Endpoint: http://<host>/<path> # the endpoint is an URL beginning with "http://"
 #            Protocol: http
