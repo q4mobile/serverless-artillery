@@ -11,6 +11,6 @@ config:
 scenarios:
   - name: "Perform Q4 IDP Login http journey to console"
     flow:
-      - log: "Area: Traffic hittin login page"
+      - log: "Area: JWKS Endpoint"
       - get:
           url: "oauth/jwks"

@@ -4,7 +4,7 @@ config:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 8 # fail if error rate exceeds 0%
   phases:
-    - duration: 100 # 5 min
+    - duration: 300 # 5 min
       arrivalRate: 4 # 4 users per second ~ 200 per minutecala: 4, 8, 12, 20
       rampTo: 6 #range of users per second
       name: "Q4 IDP Login Load Test 300-166->333-228179506-all"
