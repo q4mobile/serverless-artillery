@@ -15,7 +15,7 @@ service: serverless-artillery-sYGltXkByr
 provider:
   name: aws
   runtime: nodejs16.x
-  stage: stage
+  stage: dev
   iamRoleStatements:
     # This policy allows the function to invoke itself which is important if the script is larger than a single
     # function can produce

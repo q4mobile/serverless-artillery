@@ -1,1 +1,28 @@
-# Copy and paste a test (./) configuration file here
+config:
+  target: "https://dev.connect.dev.q4inc.com/"
+  ensure:
+    max: 10000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 8 # fail if error rate exceeds 0%
+  phases:
+    - duration: 300 # 5 min
+      arrivalRate: 20 # 4 users per second ~ 200 per minute: 4, 8, 12, 20
+      rampTo: 6 # range of users per second
+      name: "Q4 IDP Login Load Test 300-166->333-228179506-all"
+  processor: "./processor/traffic-hitting-login-page.js"
+scenarios:
+  - name: "Perform Q4 IDP Login http journey to console"
+    flow:
+      - log: "Area: Load on login endpoint"
+      - get:
+          url: "oauth/auth?client_id=q4-platform-client&redirect_uri=https%3A%2F%2Fconnect.dev.q4inc.com%2F%3Flogin%3Dv2&response_type=code&scope=openid+profile+email&state=0d5fe929deb04f579820fc14a3b40fda&code_challenge=I-7DbcFiHwfWO1uXoSy3hoygOW-uPhP6K91X55W3kbs&code_challenge_method=S256&resource=https%3A%2F%2Fconnect.dev.q4inc.com&audience=q4-platform-dev.api"
+      - post:
+          beforeRequest: "beforeLogin"
+          url: "/interaction/{{ interactionId }}/login"
+          headers:
+            Cookie: "_interaction={{ interactionId }}; _interaction.sig=IX3f5el7Op9iglV65Uj2ag20OXU; _interaction.legacy={{ interactionId }}; _interaction.legacy.sig=c-afnV1FPLyJjhN42QI9thF-CuA;"
+          json:
+            # username: "automation+corpuser-user@q4inc.com"
+            # password: "^]Od,g]tC,?1J0g!oKk+"
+            username: "juan.mejia@q4inc.com"
+            password: "123456aA"
+            isRememberUsername: false
