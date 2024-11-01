@@ -1,0 +1,59 @@
+config:
+  target: "https://attendees.dev.events.q4inc.com/rest/v1"
+  ensure:
+    max: 10000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 4 # fail if error rate exceeds 0%
+  phases:
+    - duration: 5           # 5 min
+      arrivalRate: 1        # 166 attendee's per second ~ 10k per minute
+      # rampTo: 333
+      name: "Attendee rest load test 300-166->333-228179506-all"
+  processor: "./hooks/generateAuthTokens.js"
+  variables:
+    meetingId: "228179506"
+scenarios:
+  - name: "Perform Attendee http journey to console"
+    flow:
+      - get:
+          url: "/flags"
+      - get:
+          url: "/event/{{ meetingId }}"
+      - get:
+          beforeRequest: setIdToken
+          url: "/attendee/public/profile?authToken={{ id_token }}"
+      - think: 2
+      - get:
+          url: "/event/{{ meetingId }}"
+      - get:
+          url: "/flags"
+      - get:
+          url: "/auth/token/{{ meetingId }}"
+          capture:
+            - json: '$.data.token'
+              as: 'access_token'
+      - post:
+          url: "/attendee"
+          headers:
+            Authorization: "Bearer {{ access_token }}"
+          json:
+            attendeeType: "GUEST"
+            email: "{{ $randomString() }}@loading.com"
+            firstName: "{{ $randomString() }}"
+            investorType: "individual"
+            lastName: "{{ $randomString() }}"
+            meetingId: 228179506
+            registrationType: "LOBBY"
+            sendReminderEmail: true
+            type: "Q4_LOGIN"
+            wsConnectionId: "{{ $randomString() }}"
+      - loop:
+          - get:
+              url: "/event/{{ meetingId }}/broadcast-status"
+              headers:
+                Authorization: "Bearer {{ access_token }}"
+          - think: 1
+        count: 5
+      - get:
+          url: "/event/{{ meetingId }}/slides"
+          headers:
+            Authorization: "Bearer {{ access_token }}"

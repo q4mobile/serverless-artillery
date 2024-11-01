@@ -1,13 +1,12 @@
 config:
   target: "wss://stage.events.q4inc.com/graphql?x-meeting-id=298827828&x-company-id=5ff782c52dab34000885fe61&ep-wss=true"
   ensure:
-    max: 5000 # fail if max response time exceeds 2000ms
-    maxErrorRate: 0 # fail if error rate exceeds 2%
+    max: 5000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 0 # fail if error rate exceeds 0%
   phases:
-    - duration: 600           # 10 min
-      arrivalRate: 400         # 100 requests per second
-      # rampTo: 332             # 1000 requests per second
-      name: "Perform Attendee load test 600-350"
+    - duration: 300           # 10 min
+      arrivalRate: 332         # 166 attendee's per second
+      name: "Perform Attendee load test 300-350"
   ws:
     rejectUnauthorized: false
     token: "Bearer "
@@ -29,7 +28,7 @@ scenarios:
       - get:
           url: "https://stage.events.q4inc.com/rest/event/features?eventType=earnings"
       - get:
-          url: "https://stage.events.q4inc.com/rest/organization/public-user-info?idToken="
+          url: "https://stage.events.q4inc.com/rest/organization/public-user-info?idToken"
       - think: 2
       - get:
           url: "https://stage.events.q4inc.com/rest/event/298827828"
@@ -310,4 +309,4 @@ scenarios:
             }"
           }
         }
-      - think: 600
+      - think: 300

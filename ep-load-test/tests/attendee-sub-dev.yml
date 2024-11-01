@@ -1,0 +1,131 @@
+config:
+  target: wss://attendees.dev.events.q4inc.com/graphql?x-meeting-id=771394422&x-company-id=5ff782c52dab34000885fe61&ep-wss=true
+  ensure:
+    max: 5000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 0 # fail if error rate exceeds 0%
+  phases:
+    - duration: 10           # 5 min
+      arrivalRate: 1        # 166 attendee's per second ~ 10k per minute
+      name: "Perform Attendee load test 300-13-771394422"
+  variables:
+    meetingId: "228179506"
+  processor: "./hooks/setAccessToken.js"
+  ws:
+    rejectUnauthorized: false
+    token: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InprQnA5WWVaLXpEaEhSTmF0Vm5IQiJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGV2LnE0aW5jLmNvbS8iLCJzdWIiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYkBjbGllbnRzIiwiYXVkIjoiZXZlbnRzLXBsYXRmb3JtLmFwcCIsImlhdCI6MTcxNjgzMjM3NywiZXhwIjoxNzE2OTE4Nzc3LCJzY29wZSI6ImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiBhdHRlbmRlZTptYW5hZ2U6YXR0ZW5kZWUgYXR0ZW5kZWU6cmVhZDpxdWVzdGlvbnMgYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyBhdHRlbmRlZTp2aWV3OmJyb2FkY2FzdCBtZWV0aW5nSWQ6NzcxMzk0NDIyIHB1YmxpY1Rva2VuOnRydWUiLCJndHkiOiJjbGllbnQtY3JlZGVudGlhbHMiLCJhenAiOiJkcEtYRjJlazZqc2tVOURmWUhFV1FSbnJQa1hWamtxYiIsInBlcm1pc3Npb25zIjpbImF0dGVuZGVlOmJhc2U6cGVybWlzc2lvbiIsImF0dGVuZGVlOm1hbmFnZTphdHRlbmRlZSIsImF0dGVuZGVlOnJlYWQ6cXVlc3Rpb25zIiwiYXR0ZW5kZWU6c3VibWl0OnF1ZXN0aW9ucyIsImF0dGVuZGVlOnZpZXc6YnJvYWRjYXN0IiwibWVldGluZ0lkOjc3MTM5NDQyMiIsInB1YmxpY1Rva2VuOnRydWUiXX0.hcXoGQy7Ce_ECeTZr635q1oQmhERHi5nZn0daEdh55QtDIOC7IApqRkBE6ILWZkHlK1QAapweDOUQBDWn7f_RjGjklv9W6zC1onicF0u0fF7jRFaFJ9jsuqDJ2xPvvpEbb20YoydOmoVvR1UbCX1A1v6lITasvXSq8sgd-w0A3E4hi_imktP56sTVJtBBK-gtg0bBRppfBCvnrC3XWvowalFBvpusu76ijppGQeq9wm0G6Ss39wA1k6nzBiuQCqjLOj1sRjCU7ug3nmzjs1TMTJJL3vTsrDye0f5H0CYybNW4h4ek-ife9H9AMXL-7bSMmw1HnHF6zxfzgYfvFp45g"
+    headers:
+      Sec-WebSocket-Protocol: graphql-transport-ws
+scenarios:
+  - beforeScenario: 'setApiKey'
+    engine: "wsgql"
+    name: "Perform Attendee subscription journey to console"
+    flow:
+      - think: 1
+      - send: {
+          "id": "1",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: {{ meetingId }}
+            },
+            "extensions": {},
+            "operationName": "FEATURE_FLAG_SUBSCRIPTION",
+            "query": "subscription FEATURE_FLAG_SUBSCRIPTION { onFeatureFlagsChange }"
+          }
+        }
+      - send: {
+          "id": "2",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: {{ meetingId }}
+            },
+            "extensions": {},
+            "query": "subscription ($meetingId: Int) {
+              onEventStartPeriodUpdated(meetingId: $meetingId) {
+                event {
+                  meetingId
+                  branding {
+                    registrationPageBranding {
+                      broadridgeTelephoneNumber 
+                      broadridgeInternationalTelephoneNumber 
+                      title 
+                      description 
+                      openRegistration 
+                      proxyWebsiteLink
+                      termsAndConditionsUrl
+                    }
+                  }
+                }
+                isEventStarted
+              }
+            }"
+          }
+        }
+      - send: {
+          "id": "3",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: {{ meetingId }}
+            },
+            "extensions": {},
+            "query": "subscription ($meetingId: Int) {
+              onAssetsUpdated(meetingId: $meetingId, contentType: SLIDES)
+            }"
+          }
+        }
+      - send: {
+          "id": "4",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: {{ meetingId }}
+            },
+            "extensions": {},
+            "operationName": "BROADCAST_STATUS_SUBSCRIPTION",
+            "query": "subscription BROADCAST_STATUS_SUBSCRIPTION($meetingId: Int) {
+              onBroadcastStatusUpdated(meetingId: $meetingId) {
+                status
+                context
+                startTime
+                broadcastUrl
+              }
+            }"
+          }
+        }
+      - send: {
+          "id": "5",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: {{ meetingId }}
+            },
+            "extensions": {},
+            "query": "subscription ($meetingId: Int) {
+              onEventDisasterRecoveryUpdated(meetingId: $meetingId) {
+                enabled
+                redirectUrl
+              }
+            }"
+          }
+        }
+      - send: {
+          "id": "6",
+          "type": "subscribe",
+          "payload": {
+            "variables": {
+              meetingId: {{ meetingId }}
+            },
+            "extensions": {},
+            "operationName": "QUESTION_STATUS_SUBSCRIPTION",
+            "query": "subscription ($meetingId: Int) {
+              onEventQuestionSettingUpdated(meetingId: $meetingId) {
+                settings {
+                  questionEnabled
+                }
+              }
+            }"
+          }
+        }
+      - think: 1
