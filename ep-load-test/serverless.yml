@@ -14,7 +14,7 @@ service: serverless-artillery-ksJYGeIler
 
 provider:
   name: aws
-  runtime: nodejs16.x
+  runtime: nodejs18.x
   iamRoleStatements:
     # This policy allows the function to invoke itself which is important if the script is larger than a single
     # function can produce
@@ -36,6 +36,11 @@ provider:
         - 'sns:Publish'
       Resource:
         Ref: monitoringAlerts # must match the SNS topic's logical ID
+    - Effect: 'Allow'
+      Action:
+        -  'ssm:DescribeParameters'
+        -  'ssm:GetParameter'
+      Resource: '*'
 functions:
   loadGenerator: # !!Do not edit this name!!
     handler: handler.handler    # the serverlessArtilleryLoadTester handler() method can be found in the handler.js source file

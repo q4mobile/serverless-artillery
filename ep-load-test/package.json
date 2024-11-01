@@ -4,12 +4,15 @@
   "repository": "n/a",
   "license": "Apache-2.0",
   "dependencies": {
+    "@aws-sdk/client-ssm": "^3.682.0",
     "artillery": "git+https://github.com/q4mobile/artillery.git#master",
+    "aws-sdk": "^2.1691.0",
     "js-yaml": "^3.13.1",
+    "jsonwebtoken": "^9.0.2",
     "lodash.merge": "^4.6.2",
     "lodash.omit": "^4.5.0",
-    "util-promisify": "^2.1.0",
-    "snyk": "^1.316.1"
+    "snyk": "^1.316.1",
+    "util-promisify": "^2.1.0"
   },
   "scripts": {
     "snyk-protect": "snyk protect"
