@@ -57,17 +57,43 @@ const generateToken = async (meetingId) => {
     return jwt.sign(jwtPayload, await getPrivateKey(), jwtOptions)
 }
 
+const makeid = (length) => {
+    let result = ''
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+    const charactersLength = characters.length
+    let counter = 0
+    while (counter < length) {
+        result += characters.charAt(Math.floor(Math.random() * charactersLength))
+        counter += 1
+    }
+    return result
+}
+
 const setIdToken = async (requestParams, context, _, next) => {
     const { meetingId } = context.vars
     context.vars.id_token = await generateToken(meetingId)
+    context.vars.email = `${makeid(10)}@loading.com`
     next()
 }
 
-// not tested
-const setAccessToken = async (context, next) => {
-    const { meetingId } = context.vars
+const connectWSHandler = async (context) => {
+    const { meetingId, companyId } = context.vars
     context.vars.access_token = await generateToken(meetingId)
-    next()
+    context.vars.target = `wss://attendees.dev.events.q4inc.com/graphql?x-meeting-id=${meetingId}&x-company-id=${companyId}&ep-wss=true`
+    context.ws.token = `Bearer ${context.vars.access_token}`
 }
 
-module.exports = { setIdToken, setAccessToken }
+const startScenarioTime = new Date()
+// const endTime = new Date(startScenarioTime.getTime() + 1000 * 60 * 5) // 5 mins
+const endTime = new Date(startScenarioTime.getTime() + 1000 * 11) // 11 seconds
+
+const calculateSubscriptionTime = (context) => {
+    const currentTime = new Date()
+    const timeToEnd = (endTime - currentTime) / 1000
+    console.log('timeToEnd', timeToEnd)
+    context.vars.end_sub_time = timeToEnd
+}
+
+module.exports = {
+    setIdToken, calculateSubscriptionTime, connectWSHandler,
+}

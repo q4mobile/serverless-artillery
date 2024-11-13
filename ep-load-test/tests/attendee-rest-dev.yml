@@ -4,13 +4,13 @@ config:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 4 # fail if error rate exceeds 0%
   phases:
-    - duration: 5           # 5 min
+    - duration: 10           # 5 min
       arrivalRate: 1        # 166 attendee's per second ~ 10k per minute
       # rampTo: 333
-      name: "Attendee rest load test 300-166->333-228179506-all"
+      name: "Attendee rest load test 300-166->333-361442613-all"
   processor: "./hooks/generateAuthTokens.js"
   variables:
-    meetingId: "228179506"
+    meetingId: 361442613
 scenarios:
   - name: "Perform Attendee http journey to console"
     flow:
@@ -37,15 +37,19 @@ scenarios:
             Authorization: "Bearer {{ access_token }}"
           json:
             attendeeType: "GUEST"
-            email: "{{ $randomString() }}@loading.com"
+            email: "{{ email }}"
             firstName: "{{ $randomString() }}"
             investorType: "individual"
             lastName: "{{ $randomString() }}"
-            meetingId: 228179506
+            meetingId: "{{ meetingId }}"
             registrationType: "LOBBY"
             sendReminderEmail: true
             type: "Q4_LOGIN"
             wsConnectionId: "{{ $randomString() }}"
+      - get:
+          url: "/attendee?meetingId={{ meetingId }}&email={{ email }}"
+      - get:
+          url: "/institutions?searchInput={{ $randomString() }}"
       - loop:
           - get:
               url: "/event/{{ meetingId }}/broadcast-status"
