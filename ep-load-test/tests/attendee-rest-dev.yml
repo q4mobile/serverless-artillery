@@ -4,13 +4,13 @@ config:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 4 # fail if error rate exceeds 0%
   phases:
-    - duration: 10           # 5 min
-      arrivalRate: 1        # 166 attendee's per second ~ 10k per minute
-      # rampTo: 333
-      name: "Attendee rest load test 300-166->333-361442613-all"
+    - duration: 300           # 5 min
+      arrivalRate: 166        # 166 attendee's per second ~ 10k per minute
+      rampTo: 333
+      name: "Attendee rest load test 300-166->333-136158697-all"
   processor: "./hooks/generateAuthTokens.js"
   variables:
-    meetingId: 361442613
+    meetingId: 136158697
 scenarios:
   - name: "Perform Attendee http journey to console"
     flow:
@@ -46,10 +46,9 @@ scenarios:
             sendReminderEmail: true
             type: "Q4_LOGIN"
             wsConnectionId: "{{ $randomString() }}"
-      - get:
-          url: "/attendee?meetingId={{ meetingId }}&email={{ email }}"
-      - get:
-          url: "/institutions?searchInput={{ $randomString() }}"
+          capture:
+            - json: '$.data.id'
+              as: 'attendeeId'
       - loop:
           - get:
               url: "/event/{{ meetingId }}/broadcast-status"
@@ -61,3 +60,4 @@ scenarios:
           url: "/event/{{ meetingId }}/slides"
           headers:
             Authorization: "Bearer {{ access_token }}"
+      - function: executeSubscription
