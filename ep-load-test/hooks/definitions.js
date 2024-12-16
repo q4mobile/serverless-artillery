@@ -80,7 +80,6 @@ const onEventQuestionSettingUpdated = {
   payload: {
     variables: {},
     extensions: {},
-    operationName: "QUESTION_STATUS_SUBSCRIPTION",
     query: `subscription ($meetingId: Int) {
           onEventQuestionSettingUpdated(meetingId: $meetingId) {
             settings {
