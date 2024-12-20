@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const { v4: uuid } = require("uuid");
 const { executeSubscription } = require("./subscriptionsTest");
+const { makeid } = require("./definitions");
 
 const attendeesPermissions = [
   "attendee:base:permission",
@@ -31,19 +32,6 @@ const generateToken = async meetingId => {
   jwtPayload.scope = `${jwtPayload.scope} meetingId:${meetingId}`;
   jwtPayload.permissions.push(`meetingId:${meetingId}`);
   return jwt.sign(jwtPayload, privateKey, jwtOptions);
-};
-
-const makeid = length => {
-  let result = "";
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < length) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    counter += 1;
-  }
-  return result;
 };
 
 const setIdToken = async (_, context, __, next) => {

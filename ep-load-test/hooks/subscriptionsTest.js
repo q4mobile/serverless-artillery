@@ -20,12 +20,12 @@ const connectToWebSocket = (url, payload) => {
           console.error(err);
         }
         console.log("Connected to WebSocket");
-        resolve(ws);
       });
     });
-    // ws.on("message", function(msg) {
-    //   console.debug("MSG: %s", msg);
-    // });
+    ws.on("message", function(msg) {
+      console.debug("MSG: %s", msg);
+      resolve(ws);
+    });
     ws.on("error", function(err) {
       console.error(err);
       reject(err);
@@ -87,25 +87,31 @@ const triggerSubscriptions = async (ws, meetingId) => {
 };
 
 const startScenarioTime = new Date();
-// const endTime = new Date(startScenarioTime.getTime() + 1000 * 60 * 5); // 5 mins
-const endTime = new Date(startScenarioTime.getTime() + 1000 * 10); // 11 seconds
+const endTime = new Date(startScenarioTime.getTime() + 1000 * 60); // 5 mins
 
-const keepWSAlive = (ws, time) => {
+const keepWSAlive = (ws, options = {}) => {
   return new Promise(async resolve => {
     const currentTime = new Date();
     const timeToEnd = Math.abs(endTime - currentTime);
     let sendSubscriptionTimeout = null;
-    const setSendSubscriptionTimeout = () =>
-      (sendSubscriptionTimeout = setTimeout(() => {
-        sendSubscription(ws, JSON.stringify({ type: "ping" }));
-      }, 20000));
+
+    const setSendSubscriptionTimeout = message => {
+      if (message) {
+        // console.log("Pong");
+      }
+      sendSubscriptionTimeout = setTimeout(() => {
+        // console.log("Ping");
+        ws.ping();
+      }, 20000);
+    };
+
     ws.on("pong", setSendSubscriptionTimeout);
     setSendSubscriptionTimeout();
 
     setTimeout(() => {
       clearTimeout(sendSubscriptionTimeout);
       resolve();
-    }, time ?? timeToEnd);
+    }, options?.time ?? timeToEnd);
   });
 };
 
@@ -123,16 +129,17 @@ const executeSubscription = async (context, _, next) => {
     ws = await connectToWebSocket(wsUrl, {
       Authorization: `Bearer ${access_token}`,
       eventId: meetingId,
-      isSocketReconnect: true,
       participantRole: "ep - attendee - guest",
       userId: attendeeId,
       wsConnectionId
     });
     await triggerSubscriptions(ws, meetingId);
-    await keepWSAlive(ws);
+
+    await keepWSAlive(ws, {});
   } catch (error) {
     console.error(error);
   } finally {
+    console.log("Closing WebSocket connection", ws?.readyState);
     ws?.close();
   }
 
