@@ -20,7 +20,7 @@ const jwtPayloadBase = {
 };
 const jwtOptions = {
   algorithm: "RS256",
-  expiresIn: "365d",
+  expiresIn: "1d",
   issuer: "events-platform-attendee",
   audience: "events-platform.app"
 };

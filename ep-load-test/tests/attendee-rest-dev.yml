@@ -4,14 +4,15 @@ config:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 4 # fail if error rate exceeds 0%
   phases:
-    - duration: 60           # 5 min
-      arrivalRate: 30        # 166 attendee's per second ~ 10k per minute
-      # rampTo: 333
-      name: "Attendee rest load test 600-30-348757729-all"
+    - duration: 300           # 5 min
+      arrivalRate: 166        # 166 attendee's per second ~ 10k per minute
+      rampTo: 333
+      name: "Attendee rest load test 300-166-333-631264583"
   processor: "./hooks/generateAuthTokens.js"
   variables:
-    meetingId: 348757729
-    wsUrl: "wss://attendees.dev.events.q4inc.com/graphql?x-meeting-id=348757729&x-company-id=5ff782c52dab34000885fe61&ep-wss=true"
+    testDuration: 300
+    meetingId: 631264583
+    wsUrl: "wss://attendees.dev.events.q4inc.com/graphql?x-meeting-id=631264583&x-company-id=5ff782c52dab34000885fe61&ep-wss=true"
 scenarios:
   - name: "Perform Attendee http journey to console"
     flow:

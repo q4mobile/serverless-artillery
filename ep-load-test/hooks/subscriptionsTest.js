@@ -86,10 +86,13 @@ const triggerSubscriptions = async (ws, meetingId) => {
   ]);
 };
 
-const startScenarioTime = new Date();
-const endTime = new Date(startScenarioTime.getTime() + 1000 * 60); // 5 mins
+let startScenarioTime = null;
+let endTime = null;
 
 const keepWSAlive = (ws, options = {}) => {
+  if (!startScenarioTime) startScenarioTime = new Date();
+  if (!endTime)
+    endTime = new Date(startScenarioTime.getTime() + 1000 * options?.duration);
   return new Promise(async resolve => {
     const currentTime = new Date();
     const timeToEnd = Math.abs(endTime - currentTime);
@@ -122,6 +125,7 @@ const executeSubscription = async (context, _, next) => {
     attendeeId = "",
     wsUrl = "",
     access_token = ""
+    testDuration = 10
   } = context?.vars ?? {};
   let ws = null;
 
@@ -135,7 +139,7 @@ const executeSubscription = async (context, _, next) => {
     });
     await triggerSubscriptions(ws, meetingId);
 
-    await keepWSAlive(ws, {});
+    await keepWSAlive(ws, { duration: testDuration });
   } catch (error) {
     console.error(error);
   } finally {
