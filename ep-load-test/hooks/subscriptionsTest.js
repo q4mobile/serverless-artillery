@@ -23,7 +23,7 @@ const connectToWebSocket = (url, payload) => {
       });
     });
     ws.on("message", function(msg) {
-      console.debug("MSG: %s", msg);
+      // console.debug("MSG: %s", msg);
       resolve(ws);
     });
     ws.on("error", function(err) {
@@ -95,7 +95,7 @@ const keepWSAlive = (ws, options = {}) => {
     endTime = new Date(startScenarioTime.getTime() + 1000 * options?.duration);
   return new Promise(async resolve => {
     const currentTime = new Date();
-    const timeToEnd = Math.abs(endTime - currentTime);
+    const timeToEnd = Math.min(Math.abs(endTime - currentTime), 300 * 1000);
     let sendSubscriptionTimeout = null;
 
     const setSendSubscriptionTimeout = message => {
