@@ -1,12 +1,12 @@
 /* eslint no-underscore-dangle: 0 */
-const aws = require('aws-sdk') // eslint-disable-line import/no-extraneous-dependencies
-const { run } = require('artillery') // eslint-disable-line import/no-unresolved
+const { LambdaClient, ListLayersCommand } = require("@aws-sdk/client-lambda"); // eslint-disable-line import/no-extraneous-dependencies
+const { run } = require("artillery"); // eslint-disable-line import/no-unresolved
 
-const modes = require('./modes.js')
+const modes = require("./modes.js");
 
-const artilleryAcceptance = require('./artillery-acceptance.js')
-const artilleryMonitoring = require('./artillery-monitoring.js')
-const artilleryPerformance = require('./artillery-performance.js')
+const artilleryAcceptance = require("./artillery-acceptance.js");
+const artilleryMonitoring = require("./artillery-monitoring.js");
+const artilleryPerformance = require("./artillery-performance.js");
 
 const artilleryTask = {
   /**
@@ -16,10 +16,12 @@ const artilleryTask = {
    * @returns An artillery task fit for purpose.
    */
   createArtilleryTask: (script) => {
-    modes.validateScriptMode(script)
-    if (modes.isAcceptanceScript(script)) return artilleryAcceptance(artilleryTask)
-    if (modes.isMonitoringScript(script)) return artilleryMonitoring(artilleryTask)
-    return artilleryPerformance(artilleryTask)
+    modes.validateScriptMode(script);
+    if (modes.isAcceptanceScript(script))
+      return artilleryAcceptance(artilleryTask);
+    if (modes.isMonitoringScript(script))
+      return artilleryMonitoring(artilleryTask);
+    return artilleryPerformance(artilleryTask);
   },
 
   /**
@@ -30,39 +32,45 @@ const artilleryTask = {
    * @returns Parsed `Payload` property from AWS Lambda.
    */
   invoke: (script, type) => {
-    const lambda = new aws.Lambda({
+    const lambda = new LambdaClient({
       maxRetries: 0,
-      region: process.env.AWS_REGION || 'us-east-1',
-    })
+      region: process.env.AWS_REGION || "us-east-1",
+    });
 
     const params = {
       FunctionName: script._funcAws.functionName, // eslint-disable-line no-underscore-dangle
-      InvocationType: type || 'Event',
+      InvocationType: type || "Event",
       Payload: JSON.stringify(script),
-    }
+    };
 
     if (process.env.SERVERLESS_STAGE) {
-      params.FunctionName += `:${process.env.SERVERLESS_STAGE}`
+      params.FunctionName += `:${process.env.SERVERLESS_STAGE}`;
     }
 
+    const command = new ListLayersCommand(params);
+
     // AWS Lambda (platform-specific) invocation
-    return lambda.invoke(params).promise()
+    return lambda
+      .send(command)
       .then((res) => {
         try {
-          if (process.env.SA_DEBUG) console.log(`Response from invoking AWS Lambda: ${JSON.stringify(res)}`)
-          return type === 'RequestResponse'
-            ? JSON.parse(res.Payload)
-            : null
+          if (process.env.SA_DEBUG)
+            console.log(
+              `Response from invoking AWS Lambda: ${JSON.stringify(res)}`
+            );
+          return type === "RequestResponse" ? JSON.parse(res.Payload) : null;
         } catch (ex) {
-          console.error(`Error parsing lambda execution payload:\n${res.Payload}\nCaused error:\n${ex.stack}`)
-          return undefined // ignore error
+          console.error(
+            `Error parsing lambda execution payload:\n${res.Payload}\nCaused error:\n${ex.stack}`
+          );
+          return undefined; // ignore error
         }
       })
       .catch((ex) => {
-        console.error('Error invoking self:')
-        console.error(ex.stack)
-        return Promise.reject(new Error(`ERROR invoking self: ${ex.message}`))
-      })
+        console.error("Error invoking self:");
+        console.error(ex.stack);
+        return Promise.reject(new Error(`ERROR invoking self: ${ex.message}`));
+      });
   },
 
   /**
@@ -72,8 +80,8 @@ const artilleryTask = {
    * @returns {Promise<any>}
    */
   delay: (ms) => {
-    if (ms > 0) return new Promise(resolve => setTimeout(resolve, ms))
-    return Promise.resolve()
+    if (ms > 0) return new Promise((resolve) => setTimeout(resolve, ms));
+    return Promise.resolve();
   },
 
   /**
@@ -86,20 +94,29 @@ const artilleryTask = {
    * @returns {Promise<any>}
    */
   invokeSelf(timeDelay, script, invocationType) {
-    const trace = script._trace ? console.log : () => {}
+    const trace = script._trace ? console.log : () => {};
 
     const exec = () => {
-      trace(`invoking self for ${script._genesis} in ${script._start} @ ${Date.now()}`)
-      return artilleryTask.invoke(script, invocationType)
-        .then((result) => {
-          trace(`invoke self complete for ${script._genesis} in ${script._start} @ ${Date.now()}`)
-          return result
-        })
-    }
+      trace(
+        `invoking self for ${script._genesis} in ${
+          script._start
+        } @ ${Date.now()}`
+      );
+      return artilleryTask.invoke(script, invocationType).then((result) => {
+        trace(
+          `invoke self complete for ${script._genesis} in ${
+            script._start
+          } @ ${Date.now()}`
+        );
+        return result;
+      });
+    };
 
-    trace(`scheduling self invocation for ${script._genesis} in ${script._start} with a ${timeDelay} ms delay`)
+    trace(
+      `scheduling self invocation for ${script._genesis} in ${script._start} with a ${timeDelay} ms delay`
+    );
 
-    return artilleryTask.delay(timeDelay).then(exec)
+    return artilleryTask.delay(timeDelay).then(exec);
   },
 
   /**
@@ -112,29 +129,41 @@ const artilleryTask = {
    * @returns {Promise<any>}
    */
   distribute: (timeNow, script, settings, plans) => {
-    const trace = script._trace ? console.log : () => {
-    }
+    const trace = script._trace ? console.log : () => {};
 
-    trace(`distributing ${plans.length} plans from ${script._genesis} in ${timeNow}`)
+    trace(
+      `distributing ${plans.length} plans from ${script._genesis} in ${timeNow}`
+    );
 
-    const invocations = plans.map(plan => artilleryTask.invokeSelf(
-      (plan._start - Date.now()) - settings.timeBufferInMilliseconds,
-      plan,
-      plan._invokeType // eslint-disable-line comma-dangle
-    ).then((result) => {
-      trace(`load test from ${script._genesis} executed by ${timeNow} partially complete @ ${Date.now()}`)
-      return result
-    }))
-    return Promise.all(invocations)
-      .then((reports) => {
-        trace(`load test from ${script._genesis} in ${timeNow} completed @ ${Date.now()}`)
-        return Promise.resolve({
-          timeNow,
-          script,
-          settings,
-          reports,
+    const invocations = plans.map((plan) =>
+      artilleryTask
+        .invokeSelf(
+          plan._start - Date.now() - settings.timeBufferInMilliseconds,
+          plan,
+          plan._invokeType // eslint-disable-line comma-dangle
+        )
+        .then((result) => {
+          trace(
+            `load test from ${
+              script._genesis
+            } executed by ${timeNow} partially complete @ ${Date.now()}`
+          );
+          return result;
         })
-      })
+    );
+    return Promise.all(invocations).then((reports) => {
+      trace(
+        `load test from ${
+          script._genesis
+        } in ${timeNow} completed @ ${Date.now()}`
+      );
+      return Promise.resolve({
+        timeNow,
+        script,
+        settings,
+        reports,
+      });
+    });
   },
 
   /**
@@ -144,32 +173,39 @@ const artilleryTask = {
    * @param script The artillery script to execute in the current function
    * @returns {Promise<*>}
    */
-  execute: (timeNow, script) => new Promise((resolve, reject) => {
-    // Since Artillery will call process.exit() upon termination,
-    // we monkey-patch it to load result and resolve/reject the Promise.
-    const { exit } = process
-    let testResults = null
+  execute: (timeNow, script) =>
+    new Promise((resolve, reject) => {
+      // Since Artillery will call process.exit() upon termination,
+      // we monkey-patch it to load result and resolve/reject the Promise.
+      const { exit } = process;
+      let testResults = null;
 
-    process.exit = (code) => {
-      process.exit = exit // Unpatch
-      console.log('Artillery done.')
+      process.exit = (code) => {
+        process.exit = exit; // Unpatch
+        console.log("Artillery done.");
 
-      if (code !== 0) {
-        reject(new Error(`Artillery exited with non-zero code: ${code}`))
-      } else if (!testResults) {
-        reject(new Error('Artillery exited with zero, but test results not set.'))
-      } else {
-        resolve(testResults)
-      }
-    }
+        if (code !== 0) {
+          reject(new Error(`Artillery exited with non-zero code: ${code}`));
+        } else if (!testResults) {
+          reject(
+            new Error("Artillery exited with zero, but test results not set.")
+          );
+        } else {
+          resolve(testResults);
+        }
+      };
 
-    console.log('Starting Artillery...')
-    run(script, { output: (result) => { testResults = result.aggregate } })
-  }).catch((ex) => {
-    const msg = `ERROR exception encountered while executing load from ${script._genesis} in ${timeNow}: ${ex.message}\n${ex.stack}`
-    console.error(msg)
-    throw new Error(msg)
-  }),
+      console.log("Starting Artillery...");
+      run(script, {
+        output: (result) => {
+          testResults = result.aggregate;
+        },
+      });
+    }).catch((ex) => {
+      const msg = `ERROR exception encountered while executing load from ${script._genesis} in ${timeNow}: ${ex.message}\n${ex.stack}`;
+      console.error(msg);
+      throw new Error(msg);
+    }),
 
   /**
    * Given a plan or set of plans, distribute or execute load as appropriate.
@@ -182,13 +218,15 @@ const artilleryTask = {
    */
   executeAll: (script, settings, plans, timeNow) => {
     if (plans.length > 1) {
-      return artilleryTask.distribute(timeNow, script, settings, plans)
+      return artilleryTask.distribute(timeNow, script, settings, plans);
     } else if (plans.length === 1) {
-      return artilleryTask.execute(timeNow, plans[0])
+      return artilleryTask.execute(timeNow, plans[0]);
     } else {
-      const msg = `ERROR, no executable content in:\n${JSON.stringify(script)}!`
-      console.error(msg)
-      return Promise.reject(new Error(msg))
+      const msg = `ERROR, no executable content in:\n${JSON.stringify(
+        script
+      )}!`;
+      console.error(msg);
+      return Promise.reject(new Error(msg));
     }
   },
 
@@ -201,10 +239,10 @@ const artilleryTask = {
    * @returns {Promise<*>}
    */
   executeTask: (script, platformSettings) => {
-    const theArtilleryTask = artilleryTask.createArtilleryTask(script)
-    const timeNow = Date.now()
-    return theArtilleryTask.execute(timeNow, script, platformSettings)
+    const theArtilleryTask = artilleryTask.createArtilleryTask(script);
+    const timeNow = Date.now();
+    return theArtilleryTask.execute(timeNow, script, platformSettings);
   },
-}
+};
 
-module.exports = artilleryTask
+module.exports = artilleryTask;

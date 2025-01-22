@@ -5,7 +5,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "artillery": "git+https://github.com/q4mobile/artillery.git#master",
-    "aws-sdk": "^2.1692.0",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "lodash.merge": "^4.6.2",
