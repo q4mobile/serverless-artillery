@@ -1,16 +1,22 @@
+# Before run, make sure:
+# 1. Update mongodb(M40) to prod size;
+# 2. Update ecs attendee to match prod(8-32);
+
 config:
   target: "https://attendees.dev.events.q4inc.com/rest/v1"
   ensure:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 4 # fail if error rate exceeds 0%
   phases:
-    - duration: 5           # 5 min
-      arrivalRate: 1        # 166 attendee's per second ~ 10k per minute
-      # rampTo: 333
-      name: "Attendee rest load test 300-166->333-228179506-all"
+    - duration: 300           # 5 min
+      arrivalRate: 150        # 166 attendee's per second ~ 10k per minute
+      rampTo: 300
+      name: "Attendee rest load test 300-166-333-909330596"
   processor: "./hooks/generateAuthTokens.js"
   variables:
-    meetingId: "228179506"
+    testDuration: 300
+    meetingId: 909330596
+    wsUrl: "wss://attendees.dev.events.q4inc.com/graphql?x-meeting-id=909330596&x-company-id=5ff782c52dab34000885fe61&ep-wss=true"
 scenarios:
   - name: "Perform Attendee http journey to console"
     flow:
@@ -37,15 +43,18 @@ scenarios:
             Authorization: "Bearer {{ access_token }}"
           json:
             attendeeType: "GUEST"
-            email: "{{ $randomString() }}@loading.com"
+            email: "{{ email }}"
             firstName: "{{ $randomString() }}"
             investorType: "individual"
             lastName: "{{ $randomString() }}"
-            meetingId: 228179506
+            meetingId: "{{ meetingId }}"
             registrationType: "LOBBY"
             sendReminderEmail: true
             type: "Q4_LOGIN"
-            wsConnectionId: "{{ $randomString() }}"
+            wsConnectionId: "{{ wsConnectionId }}"
+          capture:
+            - json: '$.data.id'
+              as: 'attendeeId'
       - loop:
           - get:
               url: "/event/{{ meetingId }}/broadcast-status"
@@ -57,3 +66,4 @@ scenarios:
           url: "/event/{{ meetingId }}/slides"
           headers:
             Authorization: "Bearer {{ access_token }}"
+      - function: executeSubscription

@@ -1,73 +1,48 @@
-const jwt = require('jsonwebtoken')
-const { SSMClient, GetParameterCommand } = require('@aws-sdk/client-ssm')
+const jwt = require("jsonwebtoken");
+const { v4: uuid } = require("uuid");
+const { executeSubscription } = require("./subscriptionsTest");
+const { makeid } = require("./definitions");
 
 const attendeesPermissions = [
-    'attendee:base:permission',
-    'attendee:manage:attendee',
-    'attendee:read:questions',
-    'attendee:submit:questions',
-    'attendee:view:broadcast',
-    'publicToken:true',
-]
+  "attendee:base:permission",
+  "attendee:manage:attendee",
+  "attendee:read:questions",
+  "attendee:submit:questions",
+  "attendee:view:broadcast",
+  "publicToken:true"
+];
 
 const jwtPayloadBase = {
-    email: 'dmytro.kukharenko@q4inc.com',
-    audience: 'events-platform.app',
-    scope: attendeesPermissions.join(' '),
-    permissions: attendeesPermissions,
-}
+  email: "dmytro.kukharenko@q4inc.com",
+  audience: "events-platform.app",
+  scope: attendeesPermissions.join(" "),
+  permissions: attendeesPermissions
+};
 const jwtOptions = {
-    algorithm: 'RS256',
-    expiresIn: '365d',
-    issuer: 'events-platform-attendee',
-    audience: 'events-platform.app',
-}
-const ssmPrivateKeyParameterName = '/dev/events-platform-api/EP_ATTENDEE_API_AUTH_PRIVATE_KEY'
-let privateKey = null
+  algorithm: "RS256",
+  expiresIn: "1d",
+  issuer: "events-platform-attendee",
+  audience: "events-platform.app"
+};
 
-const getSecureParameter = async (parameterName) => {
-    const client = new SSMClient()
+const privateKey = ``;
 
-    try {
-        const command = new GetParameterCommand({
-            Name: parameterName,
-            WithDecryption: true, // decrypts the SecureString parameter
-        })
+const generateToken = async meetingId => {
+  const jwtPayload = { ...jwtPayloadBase };
+  jwtPayload.scope = `${jwtPayload.scope} meetingId:${meetingId}`;
+  jwtPayload.permissions.push(`meetingId:${meetingId}`);
+  return jwt.sign(jwtPayload, privateKey, jwtOptions);
+};
 
-        const response = await client.send(command)
+const setIdToken = async (_, context, __, next) => {
+  const { meetingId } = context.vars;
+  context.vars.id_token = await generateToken(meetingId);
+  context.vars.email = `${makeid(10)}@loading.com`;
+  context.vars.wsConnectionId = uuid();
+  next();
+};
 
-        return response.Parameter.Value
-    } catch (error) {
-        console.error(`Error retrieving parameter: ${error}`)
-        return null
-    }
-}
-
-const getPrivateKey = async () => {
-    if (!privateKey) {
-        privateKey = await getSecureParameter(ssmPrivateKeyParameterName)
-    }
-    return privateKey
-}
-
-const generateToken = async (meetingId) => {
-    const jwtPayload = { ...jwtPayloadBase }
-    jwtPayload.scope = `${jwtPayload.scope} meetingId:${meetingId}`
-    jwtPayload.permissions.push(`meetingId:${meetingId}`)
-    return jwt.sign(jwtPayload, await getPrivateKey(), jwtOptions)
-}
-
-const setIdToken = async (requestParams, context, _, next) => {
-    const { meetingId } = context.vars
-    context.vars.id_token = await generateToken(meetingId)
-    next()
-}
-
-// not tested
-const setAccessToken = async (context, next) => {
-    const { meetingId } = context.vars
-    context.vars.access_token = await generateToken(meetingId)
-    next()
-}
-
-module.exports = { setIdToken, setAccessToken }
+module.exports = {
+  setIdToken,
+  executeSubscription
+};
