@@ -1,0 +1,20 @@
+config:
+  target: "https://stage.identity.q4inc.com"
+  ensure:
+    max: 10000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 8 # fail if error rate exceeds 0%
+  phases:
+      - duration: 300 # 5 min
+      arrivalRate: 4 # 4 users per second ~ 200 per minute: 4, 8, 12, 20
+      rampTo: 6 # range of users per second
+      name: "Q4 IDP Login Load Test 300-166->333-228179506-all"
+  processor: "./processor/test-login.util.js"
+scenarios:
+  - name: "Perform Q4 IDP Login http journey to console"
+    flow:
+      - log: "Area: Load login endpoint"
+      - get:
+          url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&scope=openid+profile+email&state=d77d6992c18e401d9a0560b77f84b965&code_challenge=A0OI3J98PNn8xEE46hJCzsPDX1o_-rFBPkH81WeVY_8&code_challenge_method=S256&audience=q4-public-events-stage.api"
+      - post:
+          beforeRequest: "beforeLogin"
+          url: "/interaction/{{ interactionId }}/login/complete"

@@ -19,7 +19,7 @@ function getCookies(cookieObj) {
 }
 
 exports.beforeLogin = (req, context, _events, next) => {
-  const store = context._jar._jar.store.idx["dev.identity.q4inc.com"];
+  const store = context._jar._jar.store.idx["stage.identity.q4inc.com"];
   console.log("CONTEXT", context);
 
   const interactionId = getInteractionId(store);
@@ -42,7 +42,12 @@ exports.beforeLogin = (req, context, _events, next) => {
   console.log("cookies", cookies);
 
   req.headers.Cookie = cookies;
-  req.url = `https://dev.identity.q4inc.com/interaction/${interactionId}/login`;
+  req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/login/complete`;
+  req.json = {
+    username: "jess.gold@q4inc.com",
+    password: "iLvfcKu-ie2hntkJzvbW-jUmFv",
+    isRememberUsername: false
+  }
 
   return next();
 };
