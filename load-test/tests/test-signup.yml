@@ -4,26 +4,25 @@ config:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 8 # fail if error rate exceeds 0%
   phases:
-    - duration: 1 # 1 second (TODO: change back to 300 after tests)
-      arrivalRate: 2 # 2 users per second (TODO: Change back to 4 after test)
+    - duration: 300 # 5 min
+      arrivalRate: 4 # 4 users per second ~ 200 per minute: 4, 8, 12, 20
       rampTo: 6 # range of users per second
-      name: "Q4 IDP Login Load Test 300-166->333-228179506-all"
+      name: "Q4 IDP Signup Load Test"
   processor: "./processor/test-signup.util.js"
 scenarios:
-  - name: "Perform Q4 IDP Signup http journey to console"
+  - name: "Q4 IDP Signup Flow (includes setting password and email verification)"
     flow:
       - log: "Area: Load signup endpoint"
       - get:
-          # TODO: confirm all assets are loaded when hitting this endpoint (to ensure testing load on SSR)
           url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&scope=openid+profile+email&state=dc7552125243419ea49c1931cfd5995c&code_challenge=DjF3D1mkS6tvh95VLlw_oX-NvYEqu9P5FvrpQfWO-cw&code_challenge_method=S256&audience=q4-public-events-stage.api"
       - post:
           beforeRequest: "beforeSignup"
           afterResponse: "afterSignup"
           url: "/interaction/{{ interactionId }}/public/complete-signup"
       - get:
-          beforeRequest: "beforeEmailVerification"
-          url: "https://stage.identity.q4inc.com/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=emailVerification&userCode={{ emailVerificationCode }}"
+          beforeRequest: "beforeSetPassword"
+          url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=resetPassword&userCode={{ emailVerificationCode }}"
       - post:
-          beforeRequest: "beforeEmailVerification"
-          url: "https://stage.identity.q4inc.com/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=emailVerification&userCode={{ emailVerificationCode }}"
+          beforeRequest: "beforeCompleteSetPassword"
+          url: "/interaction/{{ interactionId }}/set-password/complete"
 

@@ -1,57 +1,32 @@
-let requestCounter = 0;
-let emailVerificationCodes = []
+const helpers = require('./helpers/test.helpers');
 
-function getInteractionId(store) {
-  const interactionPath = Object.keys(store).find(path =>
-    path.startsWith("/interaction/")
-  );
-
-  if (!interactionPath) return null;
-
-  const interactionId = interactionPath.split("/interaction/")[1];
-  return interactionId;
-}
-
-function getCookies(cookieObj) {
-  return Object.keys(cookieObj)
-    .map(key => {
-      const match = `${cookieObj[key]}`.match(/=(.*?);/);
-      return match ? `${key}=${match[1].trim()}` : "";
-    })
-    .join("; ");
-}
+let userCounter = 0;
+let randomString = helpers.getRandomString();
 
 exports.beforeSignup = (req, context, _events, next) => {
   const store = context._jar._jar.store.idx["stage.identity.q4inc.com"];
-  console.log("CONTEXT", context);
 
-  const interactionId = getInteractionId(store);
-
+  const interactionId = helpers.getInteractionId(store);
   if (!interactionId) {
     console.error("Interaction id not found");
     return next();
   }
-
   console.log("Interaction Id", interactionId);
 
-  const cookieObj = store[`/interaction/${interactionId}`];
-  const cookies = getCookies(cookieObj);
-
+  const cookies = helpers.getCookies(store, interactionId);
   if (!cookies) {
     console.error("Cookies not found");
     return next();
   }
-
   console.log("cookies", cookies);
 
   req.headers.Cookie = cookies;
   req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/public/complete-signup`;
-
   req.json = {
-    email: `jess.gold+publicloadtest${requestCounter}@q4inc.com`,
+    email: `jess.gold+loadtest.${randomString}.${userCounter}@q4inc.com`,
     password: "!q4Inc1234",
-    firstName: `Jess-${requestCounter}`,
-    lastName: `Gold-${requestCounter}`,
+    firstName: `LoadTestUser`,
+    lastName: `LoadTestUser`,
     role: "Individual Investor",
     company: "Q4 Inc",
     job: "Software Developer",
@@ -59,24 +34,51 @@ exports.beforeSignup = (req, context, _events, next) => {
     institutionId: "43e4cb41-ae68-44b3-90c5-fb0e16dfba04",
   }
 
-  requestCounter++;
+  userCounter++;
 
   return next();
 };
 
-exports.afterSignup = (req, res, _context, _events, next) => {
-  // TODO: 
-  //  1. get emailVerificationCode from response
-  //  2. store code in emailVerificationCodes (emailVerificationCodes.push(code);)
+exports.afterSignup = (_req, res, context, _events, next) => {
+  context.vars['emailVerificationCode'] = res.body.emailVerificationCode;
 
   return next();
 }
 
-exports.beforeEmailVerification = (req, context, _events, next) => {
-  // TODO: 
-  //  1. get first emailVerificationCode (emailVerificationCodes.pop();)
-  //  2. form emailVerificationCodeLink
-  //  3. set req.url = emailVerificationCodeLink
+exports.beforeSetPassword = (req, context, _events, next) => {
+  const emailVerificationCode = context.vars.emailVerificationCode;
+  req.url = `https://stage.identity.q4inc.com/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=resetPassword&userCode=${emailVerificationCode}`
+
+  return next();
+}
+
+exports.beforeCompleteSetPassword = (req, context, _events, next) => {
+  const store = context._jar._jar.store.idx["stage.identity.q4inc.com"];
+  console.log("beforeCompleteSetPassword CONTEXT", context);
+
+  const interactionId = helpers.getInteractionId(store);
+  if (!interactionId) {
+    console.error("Interaction id not found");
+    return next();
+  }
+  console.log("Interaction Id", interactionId);
+
+  const cookies = helpers.getCookies(store, interactionId);
+  if (!cookies) {
+    console.error("Cookies not found");
+    return next();
+  }
+  console.log("cookies", cookies);
+
+  const emailVerificationCode = context.vars.emailVerificationCode;
+  console.log("beforeCompleteSetPassword context.vars.emailVerificationCode", emailVerificationCode);
+
+  req.headers.Cookie = cookies;
+  req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/set-password/complete`;
+  req.json = {
+    code: emailVerificationCode,
+    password: "!q4Inc1234"
+  }
 
   return next();
 }
