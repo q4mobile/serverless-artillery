@@ -7,14 +7,18 @@ config:
     - duration: 300 # 5 min
       arrivalRate: 4 # 4 users per second ~ 200 per minute: 4, 8, 12, 20
       rampTo: 6 # range of users per second
-      name: "Q4 IDP Signup Load Test"
-  processor: "./processor/test-signup.util.js"
+      name: "Q4 IDP Sign Up Load Test"
+  processor: "./processor/signup.processor.js"
 scenarios:
-  - name: "Q4 IDP Signup Flow (includes setting password and email verification)"
+  - name: "Q4 IDP Sign Up Flow (includes sign up, company search, setting password, and email verification)"
+    weight: 1
     flow:
-      - log: "Area: Load signup endpoint"
+      - log: "Load sign up endpoint"
       - get:
           url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&scope=openid+profile+email&state=dc7552125243419ea49c1931cfd5995c&code_challenge=DjF3D1mkS6tvh95VLlw_oX-NvYEqu9P5FvrpQfWO-cw&code_challenge_method=S256&audience=q4-public-events-stage.api"
+      - get: 
+          beforeRequest: "beforeCompanySearch"
+          url: "/search/company?searchText={{ searchText }}"
       - post:
           beforeRequest: "beforeSignup"
           afterResponse: "afterSignup"
@@ -25,4 +29,3 @@ scenarios:
       - post:
           beforeRequest: "beforeCompleteSetPassword"
           url: "/interaction/{{ interactionId }}/set-password/complete"
-

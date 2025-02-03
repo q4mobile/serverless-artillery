@@ -7,12 +7,12 @@ config:
     - duration: 300 # 5 min
       arrivalRate: 4 # 4 users per second ~ 200 per minute: 4, 8, 12, 20
       rampTo: 6 # range of users per second
-      name: "Q4 IDP Login Load Test"
-  processor: "./processor/test-login.util.js"
+      name: "Q4 IDP Log in Load Test"
+  processor: "./processor/login.processor.js"
 scenarios:
-  - name: "Q4 IDP Login Flow"
+  - name: "Q4 IDP Log in Flow"
     flow:
-      - log: "Area: Load login endpoint"
+      - log: "Load log in endpoint"
       - get:
           url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&scope=openid+profile+email&state=d77d6992c18e401d9a0560b77f84b965&code_challenge=A0OI3J98PNn8xEE46hJCzsPDX1o_-rFBPkH81WeVY_8&code_challenge_method=S256&audience=q4-public-events-stage.api"
       - post:

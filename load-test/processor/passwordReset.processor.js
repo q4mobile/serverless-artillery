@@ -1,46 +1,19 @@
 const helpers = require('./helpers/test.helpers');
 
-let userCount = 0;
+let testRunCount = 0;
 let randomString = helpers.getRandomString();
 
-exports.beforeSignup = (req, context, _events, next) => {
-  const store = context._jar._jar.store.idx["stage.identity.q4inc.com"];
-
-  const interactionId = helpers.getInteractionId(store);
-  if (!interactionId) {
-    console.error("Interaction id not found");
-    return next();
-  }
-  console.log("Interaction Id", interactionId);
-
-  const cookies = helpers.getCookies(store, interactionId);
-  if (!cookies) {
-    console.error("Cookies not found");
-    return next();
-  }
-  console.log("cookies", cookies);
-
-  req.headers.Cookie = cookies;
-  req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/public/complete-signup`;
+exports.beforeForgotPassword = (req, _context, _events, next) => {
+  testRunCount++
   req.json = {
-    email: helpers.getEmail(randomString, userCount),
-    firstName: "LoadTestUser",
-    lastName: "LoadTestUser",
-    companyQuery: "",
-    selectedCompany: null,
-    consent: true,
-    customRole: "",
-    selectedRole: {
-      "id": "IndividualInvestor",
-      "type": "individual"
-    },
+    email: helpers.getEmail(randomString, testRunCount),
+    q4IdpClientId: "q4-public-events-client"
   }
-  userCount++;
 
   return next();
-};
+}
 
-exports.afterSignup = (_req, res, context, _events, next) => {
+exports.afterForgotPassword = (_req, res, context, _events, next) => {
   context.vars['setPasswordCode'] = res.body.setPasswordCode;
 
   return next();
@@ -55,7 +28,6 @@ exports.beforeSetPassword = (req, context, _events, next) => {
 
 exports.beforeCompleteSetPassword = (req, context, _events, next) => {
   const store = context._jar._jar.store.idx["stage.identity.q4inc.com"];
-  console.log("beforeCompleteSetPassword CONTEXT", context);
 
   const interactionId = helpers.getInteractionId(store);
   if (!interactionId) {
@@ -72,8 +44,6 @@ exports.beforeCompleteSetPassword = (req, context, _events, next) => {
   console.log("cookies", cookies);
 
   const setPasswordCode = context.vars.setPasswordCode;
-  console.log("beforeCompleteSetPassword context.vars.setPasswordCode", setPasswordCode);
-
   req.headers.Cookie = cookies;
   req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/set-password/complete`;
   req.json = {

@@ -1,3 +1,34 @@
+# Q4 IDP Public Events Load Test
+
+# How to use
+
+1. Install Node v12.22.6 via `nvm` and ensure it's your current selected version
+
+2. Clone the repo, open terminal and navigate to `~/load-test`
+
+3. Install dependencies: 
+   1. `npm install -g serverless-artillery@0.5.2`
+   2. `npm install -g serverless@1.38`
+   3. `npm install`
+
+4. Run the load test:
+   1. Update random string in `~/load-test/processor/helpers/test.helpers` to new value
+   2. Set your AWS credentials to `q4platform-stage`
+   3. Deploy resources: `slsart deploy --verbose`
+   4. Verify the tests are running as expected:
+      1. `slsart invoke -a -p ./tests/signup.yml`
+      2. `slsart invoke -a -p ./tests/login.yml`
+      3. `slsart invoke -a -p ./tests/passwordReset.yml` 
+   5. Invoke the tests sequentially
+      1. `slsart invoke -p ./tests/signup.yml`
+      2. `slsart invoke -p ./tests/login.yml`
+      3. `slsart invoke -p ./tests/passwordReset.yml`
+
+5. Observe results in [log group](https://069375346342-rqhzkrm2.us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Fserverless-artillery-kfksWnkdnF-dev-loadGenerator)
+
+---
+---
+
 # Serverless-artillery [![Build Status](https://travis-ci.org/Nordstrom/serverless-artillery.svg?branch=master)](https://travis-ci.org/Nordstrom/serverless-artillery) [![Coverage Status](https://coveralls.io/repos/github/Nordstrom/serverless-artillery/badge.svg?branch=master)](https://coveralls.io/github/Nordstrom/serverless-artillery?branch=master)
 
 [//]: # (Thanks to https://www.divio.com/en/blog/documentation/)
