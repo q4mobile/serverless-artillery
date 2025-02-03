@@ -20,3 +20,13 @@ exports.getCookies = (store, interactionId) => {
     })
     .join("; ");
 }
+
+exports.getEmail = (randomString, userCount) => {
+  const email = `jess.gold+loadtest.${randomString}.${userCount}@q4inc.com`;
+  console.log("User email:", email);
+  return email
+}
+
+exports.getPassword = () => {
+  return "!q4Inc1234"
+}

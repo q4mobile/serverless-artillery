@@ -3,42 +3,17 @@ const helpers = require('./helpers/test.helpers');
 let userCount = 0;
 let randomString = helpers.getRandomString();
 
-exports.beforeSignup = (req, context, _events, next) => {
-  const store = context._jar._jar.store.idx["stage.identity.q4inc.com"];
-
-  const interactionId = helpers.getInteractionId(store);
-  if (!interactionId) {
-    console.error("Interaction id not found");
-    return next();
-  }
-  console.log("Interaction Id", interactionId);
-
-  const cookies = helpers.getCookies(store, interactionId);
-  if (!cookies) {
-    console.error("Cookies not found");
-    return next();
-  }
-  console.log("cookies", cookies);
-
-  req.headers.Cookie = cookies;
-  req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/public/complete-signup`;
+exports.beforeForgotPassword = (req, _context, _events, next) => {
   req.json = {
     email: helpers.getEmail(randomString, userCount),
-    password: helpers.getPassword(),
-    firstName: `LoadTestUser`,
-    lastName: `LoadTestUser`,
-    role: "Individual Investor",
-    company: "Q4 Inc",
-    job: "Software Developer",
-    type: "individual",
-    institutionId: "43e4cb41-ae68-44b3-90c5-fb0e16dfba04",
+    q4IdpClientId: "q4-public-events-client"
   }
-  userCount++;
+  userCount++
 
   return next();
-};
+}
 
-exports.afterSignup = (_req, _res, context, _events, next) => {
+exports.afterForgotPassword = (_req, res, context, _events, next) => {
   context.vars['setPasswordCode'] = res.body.setPasswordCode;
 
   return next();

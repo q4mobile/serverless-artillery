@@ -1,6 +1,6 @@
 const helpers = require('./helpers/test.helpers');
 
-let userCounter = 0;
+let userCount = 0;
 let randomString = helpers.getRandomString();
 
 exports.beforeLogin = (req, context, _events, next) => {
@@ -23,12 +23,11 @@ exports.beforeLogin = (req, context, _events, next) => {
   req.headers.Cookie = cookies;
   req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/login/complete`;
   req.json = {
-    username: `jess.gold+loadtest.${randomString}.${userCounter}@q4inc.com`,
-    password: "!q4Inc1234",
+    username: helpers.getEmail(randomString, userCount),
+    password: helpers.getPassword(),
     isRememberUsername: false
   }
-
-  userCounter++;
+  userCount++;
 
   return next();
 };
