@@ -24,21 +24,23 @@ exports.beforeSignup = (req, context, _events, next) => {
   req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/public/complete-signup`;
   req.json = {
     email: helpers.getEmail(randomString, userCount),
-    password: helpers.getPassword(),
-    firstName: `LoadTestUser`,
-    lastName: `LoadTestUser`,
-    role: "Individual Investor",
-    company: "Q4 Inc",
-    job: "Software Developer",
-    type: "individual",
-    institutionId: "43e4cb41-ae68-44b3-90c5-fb0e16dfba04",
+    firstName: "LoadTestUser",
+    lastName: "LoadTestUser",
+    companyQuery: "",
+    selectedCompany: null,
+    consent: true,
+    customRole: "",
+    selectedRole: {
+      "id": "IndividualInvestor",
+      "type": "individual"
+    },
   }
   userCount++;
 
   return next();
 };
 
-exports.afterSignup = (_req, _res, context, _events, next) => {
+exports.afterSignup = (_req, res, context, _events, next) => {
   context.vars['setPasswordCode'] = res.body.setPasswordCode;
 
   return next();

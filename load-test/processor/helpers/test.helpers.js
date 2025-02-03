@@ -1,4 +1,4 @@
-exports.getRandomString = () => "vi43o8cfzd"  // change value between load test runs
+exports.getRandomString = () => "5rj32l2ql9x"  // change value between load test runs
 
 exports.getInteractionId = (store) => {
   const interactionPath = Object.keys(store).find(path =>
