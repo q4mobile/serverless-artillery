@@ -1,12 +1,11 @@
 const helpers = require('./helpers/test.helpers');
 
-let testRunCount = 0;
+let testRunCount = 1;
 let randomString = helpers.getRandomString();
 
 exports.beforeForgotPassword = (req, _context, _events, next) => {
-  testRunCount++
   req.json = {
-    email: helpers.getEmail(randomString, testRunCount),
+    email: helpers.getEmail(randomString, testRunCount++),
     q4IdpClientId: "q4-public-events-client"
   }
 

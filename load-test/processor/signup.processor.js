@@ -1,10 +1,9 @@
 const helpers = require('./helpers/test.helpers');
 
-let testRunCount = 0;
+let testRunCount = 1;
 let randomString = helpers.getRandomString();
 
 exports.beforeCompanySearch = (req, _context, _events, next) => {
-  testRunCount++;
   req.url = `https://stage.identity.q4inc.com/search/company?searchText=Vanguard+Group+${testRunCount}`;
 
   next();
@@ -30,7 +29,7 @@ exports.beforeSignup = (req, context, _events, next) => {
   req.headers.Cookie = cookies;
   req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/public/complete-signup`;
   req.json = {
-    email: helpers.getEmail(randomString, testRunCount),
+    email: helpers.getEmail(randomString, testRunCount++),
     firstName: "LoadTestUser",
     lastName: "LoadTestUser",
     companyQuery: "",

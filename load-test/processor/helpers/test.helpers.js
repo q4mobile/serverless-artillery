@@ -1,4 +1,4 @@
-exports.getRandomString = () => "79c8z5opdiv"  // change value between load test runs
+exports.getRandomString = () => "rbtxv2k9wd9"  // change value between load test runs
 
 exports.getInteractionId = (store) => {
   const interactionPath = Object.keys(store).find(path =>
@@ -23,7 +23,6 @@ exports.getCookies = (store, interactionId) => {
 
 exports.getEmail = (randomString, userCount) => {
   const email = `jess.gold+loadtest.${randomString}.${userCount}@q4inc.com`;
-  console.log("User email:", email);
   return email
 }
 
