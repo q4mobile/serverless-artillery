@@ -1,7 +1,7 @@
 const helpers = require('./helpers/test.helpers');
 
 let testRunCount = 1;
-let randomString = helpers.getRandomString();
+let testIdentifier = helpers.getTestIdentifier();
 
 exports.beforeCompanySearch = (req, _context, _events, next) => {
   req.url = `https://stage.identity.q4inc.com/search/company?searchText=Vanguard+Group+${testRunCount}`;
@@ -29,7 +29,7 @@ exports.beforeSignup = (req, context, _events, next) => {
   req.headers.Cookie = cookies;
   req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/public/complete-signup`;
   req.json = {
-    email: helpers.getEmail(randomString, testRunCount++),
+    email: helpers.getEmail(testIdentifier),
     firstName: "LoadTestUser",
     lastName: "LoadTestUser",
     companyQuery: "",
@@ -56,7 +56,7 @@ exports.afterSignup = (_req, res, context, _events, next) => {
 
 exports.beforeSetPassword = (req, context, _events, next) => {
   const setPasswordCode = context.vars.setPasswordCode;
-  req.url = `https://stage.identity.q4inc.com/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=resetPassword&userCode=${setPasswordCode}`
+  req.url = `https://stage.identity.q4inc.com/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=createAccount&userCode=${setPasswordCode}`
 
   return next();
 }
@@ -79,7 +79,6 @@ exports.beforeCompleteSetPassword = (req, context, _events, next) => {
   console.log("cookies", cookies);
 
   const setPasswordCode = context.vars.setPasswordCode;
-  console.log("beforeCompleteSetPassword context.vars.setPasswordCode", setPasswordCode);
 
   req.headers.Cookie = cookies;
   req.url = `https://stage.identity.q4inc.com/interaction/${interactionId}/set-password/complete`;

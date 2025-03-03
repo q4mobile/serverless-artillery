@@ -2,20 +2,18 @@ config:
   target: "https://stage.identity.q4inc.com"
   ensure:
     max: 10000 # fail if max response time exceeds 5000ms
-    maxErrorRate: 8 # fail if error rate exceeds 0%
+    maxErrorRate: 8 # fail if error rate exceeds 8%
   phases:
-    - duration: 300 # 5 min
-      arrivalRate: 4 # 4 users per second ~ 200 per minute: 4, 8, 12, 20
-      rampTo: 6 # range of users per second
+    - duration: 60 # 1 minute
+      arrivalCount: 10000 # 10000 virtual users per minute
       name: "Q4 IDP Sign Up Load Test"
   processor: "./processor/signup.processor.js"
 scenarios:
   - name: "Q4 IDP Sign Up Flow (includes sign up, company search, setting password, and email verification)"
-    weight: 1
     flow:
       - log: "Load sign up endpoint"
       - get:
-          url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&scope=openid+profile+email&state=dc7552125243419ea49c1931cfd5995c&code_challenge=DjF3D1mkS6tvh95VLlw_oX-NvYEqu9P5FvrpQfWO-cw&code_challenge_method=S256&audience=q4-public-events-stage.api"
+          url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&scope=openid+profile+email&state=dc7552125243419ea49c1931cfd5995c&code_challenge=DjF3D1mkS6tvh95VLlw_oX-NvYEqu9P5FvrpQfWO-cw&code_challenge_method=S256&audience=q4-public-events-stage.api&event_name=Meta+Q1%6024+Earnings+Presentation"
       - get: 
           beforeRequest: "beforeCompanySearch"
           url: "/search/company?searchText={{ searchText }}"
@@ -25,7 +23,7 @@ scenarios:
           url: "/interaction/{{ interactionId }}/public/complete-signup"
       - get:
           beforeRequest: "beforeSetPassword"
-          url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=resetPassword&userCode={{ setPasswordCode }}"
+          url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&prompt=createAccount&userCode={{ setPasswordCode }}"
       - post:
           beforeRequest: "beforeCompleteSetPassword"
           url: "/interaction/{{ interactionId }}/set-password/complete"

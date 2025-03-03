@@ -2,7 +2,7 @@
 
 # How to use
 
-1. Install Node v12.22.6 via `nvm` and ensure it's your current selected version
+1. Install Node v12.22.6 via `nvm install 12.22.6` and run it via `nvm use 12.22.6`
 
 2. Clone the repo, open terminal and navigate to `~/load-test`
 
