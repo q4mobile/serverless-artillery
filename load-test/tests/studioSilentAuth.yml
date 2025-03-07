@@ -1,0 +1,74 @@
+config:
+  target: "https://stage.identity.q4inc.com"
+  ensure:
+    max: 10000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 8 # fail if error rate exceeds 0%
+  phases:
+    # - duration: 60 # 1 minute
+      # arrivalCount: 6500 # 6500 virtual users per minute
+    
+    # - duration: 180 # 3 minutes
+    #   arrivalCount: 19500 # 6500 virtual users per minute
+    #   name: "Q4 IDP Silent Auth Load Test"
+      
+    # - duration: 437 # 7.28 minutes
+    #   arrivalRate: 6500
+    #   rampTo: 15000
+    #   name: ramp up
+    # - duration: 60 # 1 minute
+    #   arrivalCount: 15000 # 15000 virtual users per minute
+    #   name: sustain
+
+    # - duration: 180 # 3 minutes
+    #   arrivalRate: 6500
+    #   rampTo: 10000
+    #   name: ramp up
+    # - duration: 60 # 1 minute
+    #   arrivalCount: 10000 # 15000 virtual users per minute
+    #   name: sustain
+
+    # - duration: 480 # 8 minutes
+    #   arrivalCount: 120000 # 15000 virtual users per minute
+
+    - duration: 60 # 1 minute
+      arrivalCount: 15000 # 15000 virtual users per minute
+
+    # - duration: 437 # 7.28 minutes
+    #   arrivalRate: 108 # 108 users per second -> 6480 users per minute
+    #   rampTo: 250 # 250 users per second -> 15000 users per minute
+    #   name: ramp up
+    # - duration: 60 # 1 minute
+    #   arrivalCount: 15000 # 15000 virtual users per minute
+    #   name: sustain
+
+  processor: "./processor/studioSilentAuth.processor.js"
+scenarios:
+  - name: "Q4 IDP Silent Auth"
+    flow:
+      - log: "Login"
+      - get:
+          url: "/oauth/auth?client_id=q4-public-events-client&redirect_uri=https%3A%2F%2Fconnect.stage.q4inc.com%2Finternal%2Fpublic-users-testing&response_type=code&scope=openid+profile+email&state=d77d6992c18e401d9a0560b77f84b965&code_challenge=A0OI3J98PNn8xEE46hJCzsPDX1o_-rFBPkH81WeVY_8&code_challenge_method=S256"
+      - post:
+          beforeRequest: "beforeLogin"
+          url: "/interaction/{{ interactionId }}/login/complete"
+      - get:
+          beforeRequest: "beforeFinishInteraction"
+          url: "/oauth/auth/{{ interactionId }}"
+
+      # wait for 3m before silent auth
+      - think: 180
+
+      # wait for 10m before silent auth
+      # - think: 600
+
+      # wait for 11.28m before silent auth
+      # - think: 677
+
+      - log: "Trigger Silent Auth"
+      - get:
+          afterResponse: "afterSilentAuth"
+          url: "/oauth/auth?client_id=q4-studio-public-client&redirect_uri=https%3A%2F%2Fauth.stage.platform.q4inc.com%2Fauth%2Fv2%2FpublicAuthRedirect&response_type=code&scope=openid+profile+email&state=d77d6992c18e401d9a0560b77f84b965"
+      - post:
+          beforeRequest: "beforeExchangeCodeForToken"
+          afterResponse: "afterExchangeCodeForToken"
+          url: "/oauth/token"
