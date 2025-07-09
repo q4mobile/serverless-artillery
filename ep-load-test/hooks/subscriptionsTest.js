@@ -6,7 +6,8 @@ const {
   onAssetsUpdated,
   onBroadcastStatusUpdated,
   onEventDisasterRecoveryUpdated,
-  onEventQuestionSettingUpdated
+  onEventQuestionSettingUpdated,
+  onDualStreamStatusUpdated
 } = require("./definitions");
 
 const connectToWebSocket = (url, payload) => {
@@ -75,6 +76,11 @@ const triggerSubscriptions = async (ws, meetingId) => {
     id: uuid(),
     ...onEventQuestionSettingUpdated
   });
+  onDualStreamStatusUpdated.payload.variables.meetingId = meetingId;
+  const _onDualStreamStatusUpdated = JSON.stringify({
+    id: uuid(),
+    ...onDualStreamStatusUpdated
+  });
 
   await Promise.allSettled([
     sendSubscription(ws, _featureFlags),
@@ -82,7 +88,8 @@ const triggerSubscriptions = async (ws, meetingId) => {
     sendSubscription(ws, _onAssetsUpdated),
     sendSubscription(ws, _onBroadcastStatusUpdated),
     sendSubscription(ws, _onEventDisasterRecoveryUpdated),
-    sendSubscription(ws, _onEventQuestionSettingUpdated)
+    sendSubscription(ws, _onEventQuestionSettingUpdated),
+    sendSubscription(ws, _onDualStreamStatusUpdated)
   ]);
 };
 
