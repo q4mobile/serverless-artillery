@@ -1,5 +1,5 @@
 /* eslint no-underscore-dangle: 0 */
-const { LambdaClient, ListLayersCommand } = require("@aws-sdk/client-lambda"); // eslint-disable-line import/no-extraneous-dependencies
+const { LambdaClient, InvokeCommand } = require("@aws-sdk/client-lambda"); // eslint-disable-line import/no-extraneous-dependencies
 const { run } = require("artillery"); // eslint-disable-line import/no-unresolved
 
 const modes = require("./modes.js");
@@ -47,7 +47,7 @@ const artilleryTask = {
       params.FunctionName += `:${process.env.SERVERLESS_STAGE}`;
     }
 
-    const command = new ListLayersCommand(params);
+    const command = new InvokeCommand(params);
 
     // AWS Lambda (platform-specific) invocation
     return lambda
