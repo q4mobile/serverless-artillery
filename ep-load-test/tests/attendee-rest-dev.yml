@@ -3,20 +3,20 @@
 # 2. Update ecs attendee to match prod(8-32);
 
 config:
-  target: "https://attendees.dev.events.q4inc.com/rest/v1"
+  target: "https://attendees.stage.events.q4inc.com/rest/v1"
   ensure:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 4 # fail if error rate exceeds 0%
   phases:
-    - duration: 10           # 5 min
-      arrivalRate: 1        # 166 attendee's per second ~ 10k per minute
+    - duration: 10 # 5 min
+      arrivalRate: 1 # 166 attendee's per second ~ 10k per minute
       # rampTo: 300
-      name: "Attendee rest load test 300-166-333-909330596"
+      name: "Attendee rest load test 10-1-359887660"
   processor: "./hooks/generateAuthTokens.js"
   variables:
     testDuration: 1
-    meetingId: 909330596
-    wsUrl: "wss://attendees.dev.events.q4inc.com/graphql?x-meeting-id=909330596&x-company-id=5ff782c52dab34000885fe61&ep-wss=true"
+    meetingId: 359887660
+    wsUrl: "wss://attendees.stage.events.q4inc.com/graphql?x-meeting-id=359887660&x-company-id=646d14077cf897e6805dd3e7&ep-wss=true"
 scenarios:
   - name: "Perform Attendee http journey to console"
     flow:
@@ -25,19 +25,12 @@ scenarios:
       - get:
           url: "/event/{{ meetingId }}"
       - get:
-          beforeRequest: setIdToken
-          url: "/attendee/public/profile?authToken={{ id_token }}"
-      - think: 2
-      - get:
-          url: "/event/{{ meetingId }}"
-      - get:
-          url: "/flags"
-      - get:
           url: "/auth/token/{{ meetingId }}"
           capture:
-            - json: '$.data.token'
-              as: 'access_token'
+            - json: "$.data.token"
+              as: "access_token"
       - post:
+          beforeRequest: setupAttendee
           url: "/attendee"
           headers:
             Authorization: "Bearer {{ access_token }}"
@@ -53,8 +46,10 @@ scenarios:
             type: "Q4_LOGIN"
             wsConnectionId: "{{ wsConnectionId }}"
           capture:
-            - json: '$.data.id'
-              as: 'attendeeId'
+            - json: "$.data.id"
+              as: "attendeeId"
+      - get:
+          url: "/event/{{ meetingId }}"
       - loop:
           - get:
               url: "/event/{{ meetingId }}/broadcast-status"

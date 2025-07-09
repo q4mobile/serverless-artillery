@@ -1,0 +1,11 @@
+{
+    "version": "1.0.0",
+    "description": "Attendee-api",
+    "repository": "n/a",
+    "dependencies": {
+      "jsonwebtoken": "^9.0.2",
+      "uuid": "^11.0.5",
+      "ws": "^8.18.0"
+    }
+  }
+  

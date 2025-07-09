@@ -42,7 +42,14 @@ const setIdToken = async (_, context, __, next) => {
   next();
 };
 
+const setupAttendee = async (_, context, __, next) => {
+  context.vars.email = `${makeid(10)}@loading.com`;
+  context.vars.wsConnectionId = uuid();
+  next();
+};
+
 module.exports = {
   setIdToken,
+  setupAttendee,
   executeSubscription
 };

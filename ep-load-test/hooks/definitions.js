@@ -90,6 +90,19 @@ const onEventQuestionSettingUpdated = {
   }
 };
 
+const onDualStreamStatusUpdated = {
+  type: "subscribe",
+  payload: {
+    variables: {},
+    extensions: {},
+    query: `subscription ($meetingId: Int) {
+          onDualStreamStatusUpdated(meetingId: $meetingId) {
+            status
+          }
+        }`
+  }
+};
+
 const makeid = length => {
   let result = "";
   const characters =
@@ -110,5 +123,6 @@ module.exports = {
   onBroadcastStatusUpdated,
   onEventDisasterRecoveryUpdated,
   onEventQuestionSettingUpdated,
+  onDualStreamStatusUpdated,
   makeid
 };
