@@ -23,11 +23,11 @@ const connectToWebSocket = (url, payload) => {
         console.log("Connected to WebSocket");
       });
     });
-    ws.on("message", function(msg) {
+    ws.on("message", function (msg) {
       // console.debug("MSG: %s", msg);
       resolve(ws);
     });
-    ws.on("error", function(err) {
+    ws.on("error", function (err) {
       console.error(err);
       reject(err);
     });
@@ -131,7 +131,7 @@ const executeSubscription = async (context, _, next) => {
     wsConnectionId = "",
     attendeeId = "",
     wsUrl = "",
-    access_token = ""
+    access_token = "",
     testDuration = 10
   } = context?.vars ?? {};
   let ws = null;
