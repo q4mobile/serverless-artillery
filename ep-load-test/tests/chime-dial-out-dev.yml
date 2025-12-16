@@ -1,0 +1,26 @@
+# Before run, make sure:
+# Create an event with internal conference call
+# Start the event, we need to have opentok session created
+
+config:
+  target: "https://streaming.dev.events.q4inc.com"
+  ensure:
+    max: 10000 # fail if max response time exceeds 5000ms
+    maxErrorRate: 4 # fail if error rate exceeds 0%
+  phases:
+    - duration: 2
+      arrivalRate: 1
+      name: "Chime dial out load test"
+  processor: "./hooks/generateAuthTokens.js"
+  variables:
+    meetingId: 834652878
+    streamingApiKey:
+scenarios:
+  - name: "Perform Chime dial out load test"
+    flow:
+      - post:
+          url: "/conference/{{ meetingId }}/dial-out"
+          headers:
+            "X-Api-Key": "{{ streamingApiKey }}"
+            "x-meeting-id": "{{ meetingId }}"
+      - think: 15
