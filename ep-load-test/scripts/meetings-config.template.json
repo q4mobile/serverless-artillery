@@ -1,0 +1,19 @@
+{
+  "environment": "dev",
+  "baseUrl": "https://attendees.dev.events.q4inc.com",
+  "meetings": [
+    {
+      "meetingId": "123456789",
+      "analystRegistrationPassword": "xxxxxxxx",
+      "desiredAnalystCount": 10,
+      "analysts": []
+    },
+    {
+      "meetingId": "987654321",
+      "analystRegistrationPassword": "yyyyyyyy",
+      "desiredAnalystCount": 10,
+      "analysts": []
+    }
+  ]
+}
+
