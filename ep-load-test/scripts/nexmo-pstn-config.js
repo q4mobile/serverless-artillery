@@ -13,7 +13,7 @@ function loadMeetingsFromConfig() {
   const configPath =
     process.env.MEETINGS_CONFIG_PATH ||
     getArg("--config") ||
-    path.join(__dirname, "meetings-config.json");
+    path.join(__dirname, "meetings-config.dev.json");
 
   try {
     if (fs.existsSync(configPath)) {
@@ -59,6 +59,8 @@ function loadMeetingsFromConfig() {
 }
 
 const meetingSlots = loadMeetingsFromConfig();
+
+console.log(`[${meetingSlots}] Meeting slots loaded`);
 
 const config = {
   targetConcurrent: parseInt(

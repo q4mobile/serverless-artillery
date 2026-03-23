@@ -345,7 +345,7 @@ async function main() {
   const configPath =
     getArg("--config") ||
     process.env.MEETINGS_CONFIG_PATH ||
-    path.join(__dirname, "meetings-config.json");
+    path.join(__dirname, "meetings-config.dev.json");
 
   const options = {
     dryRun: process.argv.includes("--dry-run"),

@@ -153,14 +153,20 @@ function printStats() {
   const stats = callTracker.getStats();
   const timestamp = new Date().toISOString().substr(11, 8);
   
-  console.log(
+  let statusLine = 
     `[${timestamp}] ` +
     `Active: ${stats.currentActive}/${config.targetConcurrent} | ` +
     `Peak: ${stats.peakConcurrent} | ` +
     `Completed: ${stats.completed} | ` +
-    `Failed: ${stats.failed} | ` +
-    `Success: ${stats.successRate}`
-  );
+    `Failed: ${stats.failed}`;
+  
+  if (stats.rateLimited > 0) {
+    statusLine += ` | Rate Limited: ${stats.rateLimited}`;
+  }
+  
+  statusLine += ` | Success: ${stats.successRate}`;
+  
+  console.log(statusLine);
 }
 
 function printFinalReport() {
@@ -176,6 +182,9 @@ function printFinalReport() {
   console.log(`  Peak Concurrent:    ${stats.peakConcurrent}`);
   console.log(`  Completed:          ${stats.completed}`);
   console.log(`  Failed:             ${stats.failed}`);
+  if (stats.rateLimited > 0) {
+    console.log(`  Rate Limited:       ${stats.rateLimited} (excluded from failure count)`);
+  }
   console.log(`  Success Rate:       ${stats.successRate}`);
   
   if (Object.keys(stats.errorBreakdown).length > 0) {

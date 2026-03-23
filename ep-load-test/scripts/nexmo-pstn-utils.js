@@ -94,6 +94,19 @@ function extractErrorMessage(error) {
   return error.message || "Unknown error";
 }
 
+function isRateLimitError(error) {
+  // Check HTTP status code
+  if (error.response?.status === 429 || error.statusCode === 429) {
+    return true;
+  }
+  // Check error message for rate limit indicators
+  const message = (error.message || "").toLowerCase();
+  if (message.includes("429") || message.includes("rate limit") || message.includes("too many requests")) {
+    return true;
+  }
+  return false;
+}
+
 async function sendDtmf(uuid, digits, clientInfo = null) {
   const callInfo = callTracker.calls.get(uuid);
   if (
@@ -258,6 +271,8 @@ async function initiateCall(callIndex) {
   const callId = `call_${callIndex}_${Date.now()}`;
   const meeting = getNextMeeting();
 
+  console.log(`[${callId}] Initiating call: ${meeting.meetingId}`);
+
   if (config.dryRun) {
     const fakeUuid = `dry-run-${callId}`;
     callTracker.addCall(fakeUuid, { callId, dryRun: true, meeting });
@@ -328,14 +343,20 @@ async function initiateCall(callIndex) {
   } catch (error) {
     const errorType = error.name || "UnknownError";
     const errorMessage = extractErrorMessage(error);
+    const isRateLimited = isRateLimitError(error);
 
-    console.log(`[${callId}] [${clientInfo.name}] Failed to initiate call:`, error.message);
-
-    callTracker.recordError(errorType, errorMessage);
-    callTracker.stats.failed++;
+    if (isRateLimited) {
+      console.log(`[${callId}] [${clientInfo.name}] Rate limited (429):`, error.message);
+      callTracker.recordError("RateLimited", errorMessage);
+      callTracker.stats.rateLimited++;
+    } else {
+      console.log(`[${callId}] [${clientInfo.name}] Failed to initiate call:`, error.message);
+      callTracker.recordError(errorType, errorMessage);
+      callTracker.stats.failed++;
+    }
     recordAccountError(clientInfo);
 
-    return { success: false, error: errorMessage, account: clientInfo.name };
+    return { success: false, error: errorMessage, account: clientInfo.name, rateLimited: isRateLimited };
   }
 }
 

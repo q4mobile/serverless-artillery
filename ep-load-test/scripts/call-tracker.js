@@ -6,6 +6,7 @@ const callTracker = {
     peakConcurrent: 0,
     completed: 0,
     failed: 0,
+    rateLimited: 0,
     errors: {},
   },
 
@@ -54,14 +55,16 @@ const callTracker = {
   },
 
   getStats() {
+    const effectiveTotal = this.stats.totalInitiated - this.stats.rateLimited;
     return {
       totalInitiated: this.stats.totalInitiated,
       currentActive: this.stats.currentActive,
       peakConcurrent: this.stats.peakConcurrent,
       completed: this.stats.completed,
       failed: this.stats.failed,
-      successRate: this.stats.totalInitiated > 0
-        ? ((this.stats.completed / this.stats.totalInitiated) * 100).toFixed(2) + "%"
+      rateLimited: this.stats.rateLimited,
+      successRate: effectiveTotal > 0
+        ? ((this.stats.completed / effectiveTotal) * 100).toFixed(2) + "%"
         : "N/A",
       errorBreakdown: this.stats.errors,
     };
