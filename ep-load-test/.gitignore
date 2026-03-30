@@ -1,0 +1,6 @@
+data/analysts-payload.csv
+data/registration-plan.json
+scripts/*.key
+scripts/nexmo-config.sh
+.env
+.env.*
