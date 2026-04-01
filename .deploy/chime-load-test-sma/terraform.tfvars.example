@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars (do not commit secrets here).
+
+aws_region  = "us-east-1"
+environment = "loadtest"
+
+# project_name = "serverless-artillery"
+# sip_media_application_name = "my-team-load-test-sma"
+# lambda_timeout_seconds = 30
+# lambda_log_retention_days = 14
+
+# tags = {
+#   Team = "platform"
+# }
