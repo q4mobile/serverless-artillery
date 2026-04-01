@@ -3,8 +3,15 @@
   "description": "A load generator function implementation",
   "repository": "n/a",
   "license": "Apache-2.0",
+  "scripts": {
+    "register-analysts": "tsx scripts/register-analysts.ts",
+    "test:scripts": "vitest run",
+    "test:scripts:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "artillery": "git+https://github.com/q4mobile/artillery.git#master",
+    "es-toolkit": "^1.39.10",
     "js-yaml": "^4.1.0",
     "jsonwebtoken": "^9.0.2",
     "lodash.merge": "^4.6.2",
@@ -12,5 +19,12 @@
     "util-promisify": "^2.1.0",
     "uuid": "^11.0.5",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.5",
+    "vitest": "^3.0.5"
   }
 }

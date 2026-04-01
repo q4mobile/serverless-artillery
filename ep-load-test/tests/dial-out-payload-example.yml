@@ -1,0 +1,28 @@
+# Example: load pre-registered analysts for a dial-out Artillery scenario.
+#
+# 1) Run `npm run register-analysts` in ep-load-test (with env vars) to write data/analysts-payload.csv
+#    (CSV rows only, no header — Artillery 1.x here uses csv-parse for payloads).
+# 2) Run from ep-load-test so ./data paths resolve:
+#    npx artillery run tests/dial-out-payload-example.yml
+#
+# Dial-out, DTMF, and IVR steps are out of scope here.
+
+config:
+  target: "https://attendees.dev.events.q4inc.com/rest/v1"
+  phases:
+    - duration: 1
+      arrivalRate: 1
+      name: "Payload smoke (one request per virtual user)"
+  payload:
+    path: "./data/analysts-payload.csv"
+    fields:
+      - "attendeeId"
+      - "pin"
+      - "email"
+      - "meetingId"
+  variables:
+    meetingId: 359887660
+scenarios:
+  - name: "Payload fields available per virtual user"
+    flow:
+      - log: "attendeeId={{ attendeeId }} meetingId={{ meetingId }} (pin and email omitted from logs)"

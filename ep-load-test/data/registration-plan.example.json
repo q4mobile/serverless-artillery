@@ -1,0 +1,11 @@
+[
+  {
+    "meetingId": 359887660,
+    "analystCount": 5
+  },
+  {
+    "meetingId": 359887661,
+    "analystCount": 7,
+    "registrationPassword": "optional-per-meeting-secret"
+  }
+]
