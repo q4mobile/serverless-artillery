@@ -12,6 +12,10 @@
 # Template script's name)
 service: serverless-artillery-ksJYGeIler
 
+custom:
+  # Dedicated load-test SMA ARN (must match API resource: ...:sma/<id>, not sip-media-application/...).
+  loadTestSipMediaApplicationArn: arn:aws:chime:*:*:sma/${env:LOAD_TEST_SMA_ID, 'missing-sma-id'}
+
 provider:
   name: aws
   runtime: nodejs22.x
@@ -41,6 +45,12 @@ provider:
         -  'ssm:DescribeParameters'
         -  'ssm:GetParameter'
       Resource: '*'
+    # Required for PSTN dial-out via Chime SDK Voice SMA.
+    - Effect: 'Allow'
+      Action:
+        - 'chime:CreateSipMediaApplicationCall'
+      Resource:
+        - ${self:custom.loadTestSipMediaApplicationArn}
 functions:
   loadGenerator: # !!Do not edit this name!!
     handler: handler.handler    # the serverlessArtilleryLoadTester handler() method can be found in the handler.js source file
@@ -53,6 +63,11 @@ functions:
         'Fn::GetAtt':
           - monitoringAlerts
           - TopicName
+      # Dial-out processor env vars (required by hooks/dialOutProcessor.js at runtime)
+      LOAD_TEST_SMA_ID: ${env:LOAD_TEST_SMA_ID, ''}
+      LOAD_TEST_FROM_PHONE: ${env:LOAD_TEST_FROM_PHONE, ''}
+      LOAD_TEST_TO_PHONE: ${env:LOAD_TEST_TO_PHONE, ''}
+      PRODUCTION_SMA_ID: ${env:PRODUCTION_SMA_ID, ''}
     events:
       - schedule:
           name: '${self:service}-${opt:stage, self:provider.stage}-monitoring' # !!Do not edit this name!!

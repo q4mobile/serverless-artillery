@@ -1,18 +1,33 @@
-# Example: load pre-registered analysts for a dial-out Artillery scenario.
+# PSTN dial-out via Chime SMA: originates one outbound call per pre-registered analyst.
 #
-# 1) Run `npm run register-analysts` in ep-load-test (with env vars) to write data/analysts-payload.csv
-#    (CSV rows only, no header — Artillery 1.x here uses csv-parse for payloads).
-# 2) Run from ep-load-test so ./data paths resolve:
-#    npx artillery run tests/dial-out-payload-example.yml
+# Prerequisites:
+#   1. Pre-register analysts to produce the CSV payload:
+#        cd ep-load-test
+#        MEETING_ID=359887660 npm run register-analysts
+#      Writes data/analysts-payload.csv (columns: attendeeId, pin, email, meetingId).
 #
-# Dial-out, DTMF, and IVR steps are out of scope here.
+#   2. Set required env vars (all are secrets — do not commit):
+#        export LOAD_TEST_SMA_ID=sma-xxxxxxxx        # dedicated TEST SMA — never production
+#        export LOAD_TEST_FROM_PHONE=+14155551234     # E.164 caller ID
+#        export LOAD_TEST_TO_PHONE=+14155559999       # E.164 PSTN number the SMA answers on
+#        export PRODUCTION_SMA_ID=sma-prod-xxxxxxxx   # optional: blocks if it matches LOAD_TEST_SMA_ID
+#
+#   3. Run from ep-load-test so ./data paths resolve:
+#        npx artillery run tests/dial-out-payload-example.yml
+#
+# Each Artillery virtual user reads one CSV row and originates one PSTN call.
+# The SMA Lambda receives meetingId, pin, attendeeId via SipHeaders + ArgumentsMap
+# so it can drive the IVR/DTMF flow automatically.
+#
+# Adjust phases to match your CSV row count and Chime TPS quota:
+#   duration × arrivalRate ≤ CSV rows  →  each analyst called once (no wrap-around).
 
 config:
   target: "https://attendees.dev.events.q4inc.com/rest/v1"
   phases:
-    - duration: 1
+    - duration: 12
       arrivalRate: 1
-      name: "Payload smoke (one request per virtual user)"
+      name: "Dial out analysts at 1 call/sec"
   payload:
     path: "./data/analysts-payload.csv"
     fields:
@@ -20,9 +35,11 @@ config:
       - "pin"
       - "email"
       - "meetingId"
-  variables:
-    meetingId: 359887660
+    order: sequence
+  processor: "./hooks/dialOutProcessor.js"
+
 scenarios:
-  - name: "Payload fields available per virtual user"
+  - name: "Dial out one analyst via Chime SMA"
     flow:
-      - log: "attendeeId={{ attendeeId }} meetingId={{ meetingId }} (pin and email omitted from logs)"
+      - function: dialOutAnalyst
+      - log: "Dialed out attendeeId={{ attendeeId }} meetingId={{ meetingId }} txnId={{ transactionId }}"

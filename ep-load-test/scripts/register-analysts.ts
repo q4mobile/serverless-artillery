@@ -9,6 +9,7 @@ import {
 } from './register-analysts-config';
 import { stripUndefined, writeJsonLog } from './register-analysts-logging';
 import { parseLabeledJson } from './register-analysts-json';
+import { fullJitterBackoffMs } from '../lib/fullJitterBackoff.js';
 import type {
   AnalystPayloadRecord,
   EpRegistrationResponse,
@@ -29,7 +30,8 @@ export {
 } from './register-analysts-config';
 
 const FAILURE_THRESHOLD = 0.1;
-const TRANSIENT_BACKOFF_MS = [1000, 2000, 4000] as const;
+const INITIAL_TRANSIENT_BACKOFF_MS = 1000;
+const MAX_TRANSIENT_BACKOFF_MS = 8000;
 const MAX_ATTEMPTS = 4;
 
 /** Redact PIN for logs: last two digits only, e.g. `****16`. Shorter PINs fully masked. */
@@ -238,6 +240,10 @@ async function fetchWithRetry(
       return { ok: false, status: res.status, bodyText: lastBody };
     }
     if (attempt < MAX_ATTEMPTS - 1) {
+      const backoffMs = fullJitterBackoffMs(attempt, {
+        initialMs: INITIAL_TRANSIENT_BACKOFF_MS,
+        maxMs: MAX_TRANSIENT_BACKOFF_MS,
+      });
       writeJsonLog(deps, {
         lvl: 'WARN',
         evt: 'ep.register.retry',
@@ -249,9 +255,10 @@ async function fetchWithRetry(
           status: res.status,
           attempt: attempt + 1,
           maxAttempts: MAX_ATTEMPTS,
+          backoffMs,
         }),
       });
-      await deps.sleep(TRANSIENT_BACKOFF_MS[attempt]);
+      await deps.sleep(backoffMs);
     }
   }
   return { ok: false, status: lastStatus, bodyText: lastBody };

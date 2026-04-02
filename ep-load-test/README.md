@@ -63,6 +63,50 @@ Logs are **structured JSON lines** on stdout. PINs are redacted in logs (last tw
 | `npm run test:scripts:watch` | Vitest watch mode |
 | `npm run typecheck` | TypeScript check |
 
-### Artillery payload example
+## PSTN dial-out (`serverless-artillery` + Chime SMA)
 
-See [tests/dial-out-payload-example.yml](tests/dial-out-payload-example.yml).
+### Test SMA (Terraform)
+
+To create a **dedicated load-test** SIP Media Application and minimal handler Lambda in AWS, apply the stack under [../.deploy/chime-load-test-sma/README.md](../.deploy/chime-load-test-sma/README.md). Copy `sip_media_application_id` from Terraform outputs into `LOAD_TEST_SMA_ID`.
+
+Outbound PSTN calls are driven by `serverless-artillery invoke` using [tests/dial-out-payload-example.yml](tests/dial-out-payload-example.yml), which loads **`data/analysts-payload.csv`** (from `npm run register-analysts`) and runs [hooks/dialOutProcessor.js](hooks/dialOutProcessor.js). The processor calls `CreateSipMediaApplicationCallCommand` once per virtual user and passes `meetingId`, `pin`, and `attendeeId` via `SipHeaders` and `ArgumentsMap` to the test SMA Lambda.
+
+**Flow:** pre-register analysts → set env vars → deploy worker Lambda → invoke test from `ep-load-test`:
+
+Tune `config.phases` so `duration × arrivalRate` matches your CSV row count and Chime TPS limits.
+
+### Actual run command (`serverless-artillery` deploy/invoke)
+
+Set dial-out env vars on **deploy** so they are baked into the worker Lambda environment:
+
+```bash
+cd ep-load-test
+LOAD_TEST_SMA_ID="sma-xxxxxxxx" \
+LOAD_TEST_FROM_PHONE="+14155551234" \
+LOAD_TEST_TO_PHONE="+14155559999" \
+PRODUCTION_SMA_ID="sma-prod-xxxxxxxx" \
+../bin/serverless-artillery deploy
+
+../bin/serverless-artillery invoke -p tests/dial-out-payload-example.yml
+```
+
+`AWS_REGION` is reserved by Lambda and must not be set under `serverless.yml` function environment.
+Region still resolves at runtime from Lambda (`AWS_REGION`) or falls back to `us-east-1` in the hook.
+
+### Environment variables (dial-out processor)
+
+| Variable | Required | Default | Notes |
+|----------|----------|---------|--------|
+| `LOAD_TEST_SMA_ID` | Yes | — | **Secret.** Dedicated **test** SIP Media Application ID — **never** the production SMA |
+| `LOAD_TEST_FROM_PHONE` | Yes | — | **Secret.** E.164 caller ID (e.g. `+14155551234`) |
+| `LOAD_TEST_TO_PHONE` | Yes | — | **Secret.** E.164 PSTN number the SMA answers on |
+| `AWS_REGION` | No | `us-east-1` | Region for `ChimeSDKVoiceClient` |
+| `PRODUCTION_SMA_ID` | No | — | If set and equals `LOAD_TEST_SMA_ID`, the processor throws on load (blocks accidental production SMA) |
+
+The processor logs `LOAD_TEST_SMA_ID` on load. PINs are redacted in logs (last two digits only).
+
+### Retry and IAM implementation notes
+
+- **Retry jitter:** both `hooks/dialOutProcessor.js` and `scripts/register-analysts.ts` use exponential backoff with **full jitter** for transient retries, via shared helper [`lib/fullJitterBackoff.js`](lib/fullJitterBackoff.js). Instead of synchronized fixed waits (`1s`, `2s`, `4s`), each retry sleeps a random duration in `[0, backoffCap]` to reduce retry storms during throttling events.
+- **Dial-out types:** TypeScript types for the Artillery hook (`context.vars`, `events.emit`, `done`) live in [`types/dialOut.ts`](types/dialOut.ts) for IDE support and tests; the runtime processor stays plain JS.
+- **Dial-out IAM scope:** `serverless.yml` grants only `chime:CreateSipMediaApplicationCall` and scopes `Resource` to the dedicated load-test SMA ARN derived from `LOAD_TEST_SMA_ID` (`arn:aws:chime:*:*:sma/<id>` — this must match the resource ARN in `AccessDenied` errors, not `sip-media-application/...`). This keeps load traffic constrained to the test SMA and follows least-privilege principles.
