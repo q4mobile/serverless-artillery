@@ -1,15 +1,9 @@
 /**
- * Chime SIP Media Application Lambda for **load-test** traffic.
+ * Chime SIP Media Application Lambda for **load-test** traffic (Dynamo-gated dial-out only).
  *
- * **Outbound (CreateSipMediaApplicationCall)** — primary path for ep-load-test dial-out:
- * - NEW_OUTBOUND_CALL / RINGING: Chime ignores Lambda return values; respond with empty actions.
- * - CALL_ANSWERED: callee picked up; return Hangup to end the test leg quickly (no prior Answer).
- *   See: https://docs.aws.amazon.com/chime-sdk/latest/dg/use-create-call-api.html
- *
- * **Inbound** (optional, if you route PSTN into this SMA):
- * - NEW_INBOUND_CALL → Answer → ACTION_SUCCESSFUL(Answer) → Hangup
- *
- * Extend for IVR/DTMF (meetingId, pin from SipHeaders / ArgumentsMap) for full conference flows.
+ * Outbound: CALL_ANSWERED → empty Actions (worker polls Dynamo + UpdateSipMediaApplicationCall).
+ * CALL_UPDATE_REQUESTED → SendDigits from Arguments.loadTestDigits, or Hangup when Arguments.loadTestHangup is true.
+ * Inbound (optional): NEW_INBOUND_CALL → Answer → ACTION_SUCCESSFUL(Answer) → Hangup.
  */
 
 "use strict";
@@ -41,15 +35,6 @@ function participantDirection(participant) {
     return String(participant.Direction);
   }
   return "";
-}
-
-/**
- * @param {unknown} value
- * @returns {string}
- */
-function redactPin(value) {
-  const s = String(value);
-  return s.length >= 2 ? `****${s.slice(-2)}` : "****";
 }
 
 /**
@@ -89,9 +74,18 @@ function hangupResponse(participant) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function redactPin(value) {
+  const s = String(value);
+  return s.length >= 2 ? `****${s.slice(-2)}` : "****";
+}
+
+/**
  * @param {Record<string, unknown>} event
  */
-function logStructured(event) {
+function logStructured(event, extra) {
   const type = event.InvocationEventType;
   const participant = firstParticipant(event);
   const sipHeaders =
@@ -127,30 +121,43 @@ function logStructured(event) {
       ? participant.Direction
       : undefined;
 
+  const ta =
+    event.CallDetails &&
+    typeof event.CallDetails === "object" &&
+    event.CallDetails !== null &&
+    "TransactionAttributes" in event.CallDetails
+      ? /** @type {Record<string, string>} */ (
+          /** @type {{ TransactionAttributes?: Record<string, string> }} */ (
+            event.CallDetails
+          ).TransactionAttributes
+        )
+      : undefined;
+
   const line = JSON.stringify({
     ts: new Date().toISOString(),
-    lvl: "INFO",
+    lvl: extra?.lvl || "INFO",
     svc: "chime-load-test-sma",
-    evt: "sma.invocation",
-    msg: "SMA handler invoked",
+    evt: extra?.evt || "sma.invocation",
+    msg: extra?.msg || "SMA handler invoked",
     InvocationEventType: type,
     Direction: direction,
     meetingId:
       sipHeaders && sipHeaders["X-Meeting-Id"] !== undefined
         ? sipHeaders["X-Meeting-Id"]
-        : args && args.meetingId,
+        : ta?.meetingId ?? args?.meetingId,
     attendeeId:
       sipHeaders && sipHeaders["X-Attendee-Id"] !== undefined
         ? sipHeaders["X-Attendee-Id"]
-        : args && args.attendeeId,
-    pinRedacted: pinRaw !== undefined ? redactPin(pinRaw) : undefined,
+        : ta?.attendeeId ?? args?.attendeeId,
+    pinRedacted: pinRaw !== undefined ? redactPin(pinRaw) : ta?.pin ? redactPin(ta.pin) : undefined,
     actionType:
       actionData &&
       typeof actionData === "object" &&
       actionData !== null &&
       "Type" in actionData
         ? actionData.Type
-        : undefined
+        : undefined,
+    ...(extra?.err ? { err: extra.err } : {})
   });
   console.log(line);
 }
@@ -167,12 +174,6 @@ exports.handler = async (event) => {
   const direction = participantDirection(participant);
 
   switch (type) {
-    case "CALL_ANSWERED":
-      if (direction === "Outbound") {
-        return hangupResponse(participant);
-      }
-      return emptyActionsResponse();
-
     case "NEW_OUTBOUND_CALL":
     case "RINGING":
       return emptyActionsResponse();
@@ -183,19 +184,109 @@ exports.handler = async (event) => {
         Actions: [{ Type: "Answer" }]
       };
 
-    case "ACTION_SUCCESSFUL": {
+    case "CALL_UPDATE_REQUESTED": {
+      if (participantDirection(participant) !== "Outbound") {
+        return emptyActionsResponse();
+      }
       const actionData = event.ActionData;
-      if (
+      const params =
         actionData &&
         typeof actionData === "object" &&
         actionData !== null &&
-        "Type" in actionData &&
-        actionData.Type === "Answer"
+        "Parameters" in actionData
+          ? /** @type {{ Parameters?: { Arguments?: Record<string, string> } }} */ (
+              actionData
+            ).Parameters
+          : undefined;
+      const updateArgs =
+        params && typeof params === "object" && params.Arguments
+          ? params.Arguments
+          : undefined;
+      const wantsHangup =
+        updateArgs &&
+        (updateArgs.loadTestHangup === "true" ||
+          updateArgs.loadTestHangup === "1");
+      if (wantsHangup && participant?.CallId) {
+        return hangupResponse(participant);
+      }
+      const digits = updateArgs && updateArgs.loadTestDigits;
+      if (!digits || !participant?.CallId) {
+        return emptyActionsResponse();
+      }
+      const toneRaw = updateArgs.loadTestToneMs;
+      const tone =
+        toneRaw !== undefined && toneRaw !== ""
+          ? parseInt(String(toneRaw), 10)
+          : 100;
+      return {
+        SchemaVersion: "1.0",
+        Actions: [
+          {
+            Type: "SendDigits",
+            Parameters: {
+              CallId: String(participant.CallId),
+              Digits: String(digits),
+              ToneDurationInMilliseconds: Number.isFinite(tone) ? tone : 100
+            }
+          }
+        ]
+      };
+    }
+
+    case "CALL_ANSWERED":
+      return emptyActionsResponse();
+
+    case "ACTION_SUCCESSFUL": {
+      if (direction === "Outbound") {
+        return emptyActionsResponse();
+      }
+
+      if (
+        event.ActionData &&
+        typeof event.ActionData === "object" &&
+        "Type" in event.ActionData &&
+        event.ActionData.Type === "Answer"
       ) {
         return hangupResponse(participant);
       }
       return emptyActionsResponse();
     }
+
+    case "ACTION_FAILED": {
+      if (direction === "Outbound") {
+        const ad = event.ActionData;
+        logStructured(event, {
+          lvl: "ERROR",
+          evt: "sma.action.failed",
+          msg: "Outbound SendDigits action failed",
+          err: {
+            type:
+              ad &&
+              typeof ad === "object" &&
+              ad !== null &&
+              "ErrorType" in ad
+                ? String(ad.ErrorType)
+                : "Unknown",
+            msg:
+              ad &&
+              typeof ad === "object" &&
+              ad !== null &&
+              "ErrorMessage" in ad
+                ? String(ad.ErrorMessage)
+                : ""
+          }
+        });
+        return hangupResponse(participant);
+      }
+      return emptyActionsResponse();
+    }
+
+    case "HANGUP":
+      logStructured(event, {
+        evt: "sma.call.ended",
+        msg: "Hangup event received"
+      });
+      return emptyActionsResponse();
 
     default:
       return emptyActionsResponse();

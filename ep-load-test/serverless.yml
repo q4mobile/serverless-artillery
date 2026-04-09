@@ -49,8 +49,14 @@ provider:
     - Effect: 'Allow'
       Action:
         - 'chime:CreateSipMediaApplicationCall'
+        - 'chime:UpdateSipMediaApplicationCall'
       Resource:
         - ${self:custom.loadTestSipMediaApplicationArn}
+    # Read-only participant state (e.g. events-streaming conference table GSI). Narrow the Resource in production.
+    - Effect: 'Allow'
+      Action:
+        - 'dynamodb:Query'
+      Resource: '*'
 functions:
   loadGenerator: # !!Do not edit this name!!
     handler: handler.handler    # the serverlessArtilleryLoadTester handler() method can be found in the handler.js source file
@@ -68,6 +74,10 @@ functions:
       LOAD_TEST_FROM_PHONE: ${env:LOAD_TEST_FROM_PHONE, ''}
       LOAD_TEST_TO_PHONE: ${env:LOAD_TEST_TO_PHONE, ''}
       PRODUCTION_SMA_ID: ${env:PRODUCTION_SMA_ID, ''}
+      # Required for dial-out (Dynamo-gated only); processor throws if empty at runtime.
+      DIALOUT_PARTICIPANTS_TABLE_NAME: ${env:DIALOUT_PARTICIPANTS_TABLE_NAME, ''}
+      DIALOUT_POLL_TIMEOUT_MS: ${env:DIALOUT_POLL_TIMEOUT_MS, '20000'}
+      DIALOUT_POLL_INTERVAL_MS: ${env:DIALOUT_POLL_INTERVAL_MS, '400'}
     events:
       - schedule:
           name: '${self:service}-${opt:stage, self:provider.stage}-monitoring' # !!Do not edit this name!!

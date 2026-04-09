@@ -69,9 +69,17 @@ Logs are **structured JSON lines** on stdout. PINs are redacted in logs (last tw
 
 To create a **dedicated load-test** SIP Media Application and minimal handler Lambda in AWS, apply the stack under [../.deploy/chime-load-test-sma/README.md](../.deploy/chime-load-test-sma/README.md). Copy `sip_media_application_id` from Terraform outputs into `LOAD_TEST_SMA_ID`.
 
-Outbound PSTN calls are driven by `serverless-artillery invoke` using [tests/dial-out-payload-example.yml](tests/dial-out-payload-example.yml), which loads **`data/analysts-payload.csv`** (from `npm run register-analysts`) and runs [hooks/dialOutProcessor.js](hooks/dialOutProcessor.js). The processor calls `CreateSipMediaApplicationCallCommand` once per virtual user and passes `meetingId`, `pin`, and `attendeeId` via `SipHeaders` and `ArgumentsMap` to the test SMA Lambda.
+Outbound PSTN calls use [tests/dial-out-payload-example.yml](tests/dial-out-payload-example.yml) and [hooks/dialOutProcessor.js](hooks/dialOutProcessor.js). **Only Dynamo-gated DTMF is supported:** `CreateSipMediaApplicationCall` with `loadTestDynamoGated=true`, then **read-only** **`Query`** on the **`correlation_id`** GSI against **`DIALOUT_PARTICIPANTS_TABLE_NAME`** until `AWAITING_MEETING_ID` / `AWAITING_MEETING_PIN`, then **`UpdateSipMediaApplicationCall`** on the load-test SMA so the Lambda handles **`CALL_UPDATE_REQUESTED`** with `SendDigits` ([`.deploy/chime-load-test-sma/lambda_src/index.js`](../.deploy/chime-load-test-sma/lambda_src/index.js)). Chime **`TransactionId`** appears **only** as the parameter to **`UpdateSipMediaApplicationCall`**; it is taken **only** from **`CreateSipMediaApplicationCall`** (not from DynamoDB).
 
-**Flow:** pre-register analysts → set env vars → deploy worker Lambda → invoke test from `ep-load-test`:
+Each outbound call sends a fresh **correlation id** (UUID) in SIP header **`X-Correlation-Id`** (same as **events-streaming** `DIGITAL_CALL_HEADER.X_Correlation_Id`); the value is **`context.vars.correlationId`**. **events-streaming** stores it as attribute **`correlation_id`** on the participant item (participant **`id`** stays a separate UUID). The conference-participants table must expose GSI **`correlation_id-index`** on partition key **`correlation_id`** (see **`lib/dialOutConfig.js`**). Apply the DynamoDB Terraform in **events-streaming** so the GSI exists before running dial-out.
+
+**GSI reads** are eventually consistent; the worker already polls in a loop, which covers normal replication lag.
+
+**Flow:** pre-register analysts → set env vars (including **`DIALOUT_PARTICIPANTS_TABLE_NAME`**) → deploy worker Lambda → deploy/update test SMA Lambda → invoke from `ep-load-test`:
+
+Optional steps after **`waitForConnectedStatus`**: **`sendParticipantControlsDtmf`** / **`waitForAfterParticipantControlsStatus`** (participant-controls menu, **`*9#`**), then **`sendHumanIntakeDtmf`** / **`waitForAfterHumanIntakeStatus`** (operator intake, **`*0#`** when human intake is enabled), mirroring **events-streaming** `ParticipantInputDigits`. Hardcoded values in **`lib/dialOutConfig.js`** match **`CallConnectionStates`**: **`CONNECTED`** after *9 (call-connection state usually unchanged), **`INITIATE_TRANSFER_FROM_CHIME_TO_SUPPORT`** after *0 when the analyst meeting leg is connected. If **`IS_ANALYST_CONNECTED_TO_CALL`** is false, **events-streaming** may write **`TRANSFERRING_TO_SUPPORT`** instead — change **`statusAfterStarZero`** in **`lib/dialOutConfig.js`** for that branch.
+
+**Toggle hand:** **`toggleHandDtmf`** sends **`*1#`** (events-streaming **`ParticipantInputDigits.TOGGLE_HAND`**). It flips **`hand_raised`** on the participant item — use **`waitForHandRaised`** after a toggle when you expect the hand up, and **`waitForHandLowered`** when you expect it down. Those hooks poll the **`hand_raised`** attribute (not **`call_connection_state`**). Alias: **`sendToggleHandDtmf`** (same as **`toggleHandDtmf`**).
 
 Tune `config.phases` so `duration × arrivalRate` matches your CSV row count and Chime TPS limits.
 
@@ -84,6 +92,7 @@ cd ep-load-test
 LOAD_TEST_SMA_ID="sma-xxxxxxxx" \
 LOAD_TEST_FROM_PHONE="+14155551234" \
 LOAD_TEST_TO_PHONE="+14155559999" \
+DIALOUT_PARTICIPANTS_TABLE_NAME="events-streaming-serverless-conference-participants-dev" \
 PRODUCTION_SMA_ID="sma-prod-xxxxxxxx" \
 ../bin/serverless-artillery deploy
 
@@ -102,11 +111,18 @@ Region still resolves at runtime from Lambda (`AWS_REGION`) or falls back to `us
 | `LOAD_TEST_TO_PHONE` | Yes | — | **Secret.** E.164 PSTN number the SMA answers on |
 | `AWS_REGION` | No | `us-east-1` | Region for `ChimeSDKVoiceClient` |
 | `PRODUCTION_SMA_ID` | No | — | If set and equals `LOAD_TEST_SMA_ID`, the processor throws on load (blocks accidental production SMA) |
+| `DIALOUT_PARTICIPANTS_TABLE_NAME` | **Yes** | — | Conference participants table (read-only `Query` on correlation GSI); processor fails at load if unset. |
+| `DIALOUT_POLL_TIMEOUT_MS` | No | `20000` | Max wait per status. |
+| `DIALOUT_POLL_INTERVAL_MS` | No | `400` | Poll interval. |
+
+**Not env:** SIP correlation header (**`X-Correlation-Id`**), Dynamo correlation GSI (**`correlation_id-index`** / **`correlation_id`**), participant field names (**`call_connection_state`**, **`hand_raised`**), and **`CallConnectionStates`** strings used by wait hooks are fixed in **`lib/dialOutConfig.js`** to match **events-streaming**.
 
 The processor logs `LOAD_TEST_SMA_ID` on load. PINs are redacted in logs (last two digits only).
+
+**Artillery `function` steps:** the bundled HTTP engine does not propagate `done(err)` for `- function:` flow steps, so dial-out hooks call `events.emit('error', message)` (and set `__dialOutScenarioAborted`) so aggregate errors and `ensure.maxErrorRate` reflect real failures.
 
 ### Retry and IAM implementation notes
 
 - **Retry jitter:** both `hooks/dialOutProcessor.js` and `scripts/register-analysts.ts` use exponential backoff with **full jitter** for transient retries, via shared helper [`lib/fullJitterBackoff.js`](lib/fullJitterBackoff.js). Instead of synchronized fixed waits (`1s`, `2s`, `4s`), each retry sleeps a random duration in `[0, backoffCap]` to reduce retry storms during throttling events.
 - **Dial-out types:** TypeScript types for the Artillery hook (`context.vars`, `events.emit`, `done`) live in [`types/dialOut.ts`](types/dialOut.ts) for IDE support and tests; the runtime processor stays plain JS.
-- **Dial-out IAM scope:** `serverless.yml` grants only `chime:CreateSipMediaApplicationCall` and scopes `Resource` to the dedicated load-test SMA ARN derived from `LOAD_TEST_SMA_ID` (`arn:aws:chime:*:*:sma/<id>` — this must match the resource ARN in `AccessDenied` errors, not `sip-media-application/...`). This keeps load traffic constrained to the test SMA and follows least-privilege principles.
+- **Dial-out IAM scope:** `serverless.yml` grants `chime:CreateSipMediaApplicationCall` and `chime:UpdateSipMediaApplicationCall` on the load-test SMA ARN, plus `dynamodb:Query` (template uses `Resource: '*'` — restrict to your participant table ARN and its indexes). Chime `Resource` must use `arn:aws:chime:*:*:sma/<id>` as in `AccessDenied` messages.
