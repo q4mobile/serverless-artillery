@@ -1,6 +1,6 @@
 # Chime load-test SIP Media Application (Terraform)
 
-Provisions a **dedicated test** SIP Media Application (`aws_chimesdkvoice_sip_media_application`) and a **minimal Node.js Lambda** aligned with **`CreateSipMediaApplicationCall`** (outbound dial-out): on `CALL_ANSWERED` / `Outbound` it hangs up so test legs do not stay up. Use this SMA ID with `LOAD_TEST_SMA_ID` in `ep-load-test` Artillery runs — **never** point production traffic here.
+Provisions a **dedicated test** SIP Media Application (`aws_chimesdkvoice_sip_media_application`) and a Node.js Lambda for **Dynamo-gated** load-test dial-out: outbound **`CALL_ANSWERED`** returns empty `Actions`; **`CALL_UPDATE_REQUESTED`** returns **`SendDigits`** from `Arguments.loadTestDigits` (after `ep-load-test` calls `UpdateSipMediaApplicationCall`). Use this SMA ID as `LOAD_TEST_SMA_ID` — **never** point production traffic here.
 
 This stack is intentionally smaller than the `chime-sma` Terraform in the **events-streaming** repository: no SIP hostname rule, no SSM parameters, and no SMA message logging bootstrap.
 
@@ -35,23 +35,27 @@ Set for dial-out:
 export LOAD_TEST_SMA_ID="$(terraform output -raw sip_media_application_id)"
 ```
 
-Use with `LOAD_TEST_FROM_PHONE`, `LOAD_TEST_TO_PHONE`, and optional `PRODUCTION_SMA_ID` as documented in `ep-load-test/README.md`.
+Use with `LOAD_TEST_FROM_PHONE`, `LOAD_TEST_TO_PHONE`, **`DIALOUT_PARTICIPANTS_TABLE_NAME`**, and optional `PRODUCTION_SMA_ID` as documented in `ep-load-test/README.md`.
 
 ## Lambda behaviour
 
 Matches the outbound flow in [Making an outbound call…](https://docs.aws.amazon.com/chime-sdk/latest/dg/use-create-call-api.html):
 
 - **`NEW_OUTBOUND_CALL` / `RINGING`**: return empty `Actions` (Chime ignores the response for these invocations).
-- **`CALL_ANSWERED`** with participant **`Direction` = `Outbound`**: return **`Hangup`** (`SipResponseCode` `0`) — this is the first event where outbound call actions are honored; there is no `Answer` step on this path.
+- **`CALL_ANSWERED`** with **`Direction` = `Outbound`**: return **empty** `Actions` (worker polls Dynamo, then `UpdateSipMediaApplicationCall`).
+- **`CALL_UPDATE_REQUESTED`**: outbound leg with `Arguments.loadTestHangup` = `true` → return **`Hangup`** (load-test teardown). Otherwise `Arguments.loadTestDigits` → **`SendDigits`**. See [Updating in-progress calls](https://docs.aws.amazon.com/chime-sdk/latest/dg/update-sip-call.html).
+- **`ACTION_SUCCESSFUL`** after outbound **`SendDigits`**: return **empty** `Actions`.
 
 Optional **inbound** path if PSTN is routed into the same SMA:
 
 - **`NEW_INBOUND_CALL`**: `Answer`.
 - **`ACTION_SUCCESSFUL`** after `Answer`: `Hangup`.
 
+- **`ACTION_FAILED`** (outbound): log and **`Hangup`**.
+
 Logs one JSON line per invocation (`InvocationEventType`, `Direction`, `meetingId` / `attendeeId` when present); **PIN values are redacted** in logs.
 
-Extend `lambda_src/index.js` for full IVR/DTMF when you automate PIN entry against a real conference flow.
+Terraform zips `lambda_src/index.js` only.
 
 ## Lambda logging (CloudWatch)
 

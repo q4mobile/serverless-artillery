@@ -131,7 +131,7 @@ const executeSubscription = async (context, _, next) => {
     wsConnectionId = "",
     attendeeId = "",
     wsUrl = "",
-    access_token = ""
+    access_token = "",
     testDuration = 10
   } = context?.vars ?? {};
   let ws = null;

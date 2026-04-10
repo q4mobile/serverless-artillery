@@ -1,31 +1,40 @@
-# PSTN dial-out via Chime SMA: originates one outbound call per pre-registered analyst.
+# PSTN dial-out via Chime SMA (Dynamo-gated DTMF only).
 #
 # Prerequisites:
-#   1. Pre-register analysts to produce the CSV payload:
-#        cd ep-load-test
-#        MEETING_ID=359887660 npm run register-analysts
-#      Writes data/analysts-payload.csv (columns: attendeeId, pin, email, meetingId).
+#   1. Pre-register analysts → data/analysts-payload.csv (attendeeId, pin, email, meetingId).
+#   2. Required env (do not commit secrets):
+#        export LOAD_TEST_SMA_ID=sma-xxxxxxxx
+#        export LOAD_TEST_FROM_PHONE=+14155551234
+#        export LOAD_TEST_TO_PHONE=+14155559999
+#        export DIALOUT_PARTICIPANTS_TABLE_NAME=events-streaming-serverless-conference-participants-dev
+#        export PRODUCTION_SMA_ID=sma-prod-xxxxxxxx   # optional guard
+#   Optional: DIALOUT_POLL_TIMEOUT_MS, DIALOUT_POLL_INTERVAL_MS — see README.
+#   Correlation SIP header, Dynamo GSI/attr, call-connection strings, and hand_raised / call_connection_state are fixed in code (dialOutConfig.js) to match events-streaming.
 #
-#   2. Set required env vars (all are secrets — do not commit):
-#        export LOAD_TEST_SMA_ID=sma-xxxxxxxx        # dedicated TEST SMA — never production
-#        export LOAD_TEST_FROM_PHONE=+14155551234     # E.164 caller ID
-#        export LOAD_TEST_TO_PHONE=+14155559999       # E.164 PSTN number the SMA answers on
-#        export PRODUCTION_SMA_ID=sma-prod-xxxxxxxx   # optional: blocks if it matches LOAD_TEST_SMA_ID
-#
-#   3. Run from ep-load-test so ./data paths resolve:
+#   3. Run from ep-load-test:
 #        npx artillery run tests/dial-out-payload-example.yml
 #
-# Each Artillery virtual user reads one CSV row and originates one PSTN call.
-# The SMA Lambda receives meetingId, pin, attendeeId via SipHeaders + ArgumentsMap
-# so it can drive the IVR/DTMF flow automatically.
+# Flow (see scenario below):
+#   dialOutAnalyst → waitForAwaitingMeetingIdStatus → sendMeetingIdDtmf →
+#   waitForAwaitingMeetingPinStatus → sendPinDtmf
+# After connected, optional *0 (human intake): sendHumanIntakeDtmf → waitForAfterHumanIntakeStatus — uncomment below if needed.
+# Toggle hand: toggleHandDtmf (*1#) → waitForHandRaised or waitForHandLowered (polls hand_raised, not call_connection_state).
+# Full cycle example: toggleHandDtmf → waitForHandRaised → toggleHandDtmf → waitForHandLowered.
+# Then: think → hangUpDialOut (UpdateSipMediaApplicationCall with loadTestHangup; SMA returns Hangup)
+# → waitForDisconnectedStatus (poll DISCONNECTED, same pattern as events-streaming).
 #
-# Adjust phases to match your CSV row count and Chime TPS quota:
-#   duration × arrivalRate ≤ CSV rows  →  each analyst called once (no wrap-around).
+# duration × arrivalRate ≤ CSV rows
+#
+# Failures: Artillery HTTP engine ignores done(err) on - function: steps; hooks emit('error', msg)
+# on the scenario emitter so aggregate "errors" and ensure.maxErrorRate: 0 work. Later hooks
+# no-op after a failure (__dialOutScenarioAborted) to avoid extra Chime/Dynamo calls.
 
 config:
   target: "https://attendees.dev.events.q4inc.com/rest/v1"
+  ensure:
+    maxErrorRate: 0
   phases:
-    - duration: 12
+    - duration: 1
       arrivalRate: 1
       name: "Dial out analysts at 1 call/sec"
   payload:
@@ -39,7 +48,22 @@ config:
   processor: "./hooks/dialOutProcessor.js"
 
 scenarios:
-  - name: "Dial out one analyst via Chime SMA"
+  - name: "Dial out one analyst via Chime SMA (Dynamo-gated)"
     flow:
       - function: dialOutAnalyst
+      - function: waitForAwaitingMeetingIdStatus
+      - function: sendMeetingIdDtmf
+      - function: waitForAwaitingMeetingPinStatus
+      - function: sendPinDtmf
+      - function: waitForConnectedStatus
+      - function: toggleHandDtmf
+      - function: waitForHandRaised
+      - function: toggleHandDtmf
+      - function: waitForHandLowered
+      # Optional *0 (expects INITIATE_TRANSFER_FROM_CHIME_TO_SUPPORT when LEG_B connected; see dialOutConfig.js if you need TRANSFERRING_TO_SUPPORT):
+      # - function: sendHumanIntakeDtmf
+      # - function: waitForAfterHumanIntakeStatus
+      - think: 60
+      - function: hangUpDialOut
+      - function: waitForDisconnectedStatus
       - log: "Dialed out attendeeId={{ attendeeId }} meetingId={{ meetingId }} txnId={{ transactionId }}"

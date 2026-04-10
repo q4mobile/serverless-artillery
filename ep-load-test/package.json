@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-chime-sdk-voice": "^3.1019.0",
+    "@aws-sdk/client-dynamodb": "^3.1024.0",
+    "@aws-sdk/util-dynamodb": "^3.996.2",
     "artillery": "git+https://github.com/q4mobile/artillery.git#master",
     "es-toolkit": "^1.39.10",
     "js-yaml": "^4.1.0",
