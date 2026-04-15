@@ -6,7 +6,7 @@
  * events-streaming (fixed literals, not env).
  */
 
-function normalizeSipMediaApplicationId(raw) {
+function normalizeSmaId(raw) {
   const s = String(raw || "").trim();
   if (!s) {
     return "";
@@ -19,22 +19,22 @@ function readEnvTrim(key, fallback = "") {
   return String(process.env[key] ?? fallback).trim();
 }
 
-function readDialOutConfig() {
+function loadConfig() {
   const productionRaw = readEnvTrim("PRODUCTION_SMA_ID");
   return {
     region: readEnvTrim("AWS_REGION", "us-east-1") || "us-east-1",
-    smaId: normalizeSipMediaApplicationId(readEnvTrim("LOAD_TEST_SMA_ID")),
+    smaId: normalizeSmaId(readEnvTrim("LOAD_TEST_SMA_ID")),
     fromPhone: readEnvTrim("LOAD_TEST_FROM_PHONE"),
     toPhone: readEnvTrim("LOAD_TEST_TO_PHONE"),
     productionSmaId: productionRaw
-      ? normalizeSipMediaApplicationId(productionRaw)
+      ? normalizeSmaId(productionRaw)
       : undefined,
     dynamo: {
       tableName: readEnvTrim("DIALOUT_PARTICIPANTS_TABLE_NAME"),
       statusAttr: "call_connection_state",
       handRaisedAttr: "hand_raised",
       pollTimeoutMs: parseInt(
-        readEnvTrim("DIALOUT_POLL_TIMEOUT_MS", "20000"),
+        readEnvTrim("DIALOUT_POLL_TIMEOUT_MS", "60000"),
         10
       ),
       pollIntervalMs: parseInt(
@@ -56,7 +56,7 @@ function readDialOutConfig() {
   };
 }
 
-function assertDialOutConfig(cfg) {
+function validateConfig(cfg) {
   const { smaId, fromPhone, toPhone, dynamo } = cfg;
   if (!smaId) {
     throw new Error(
@@ -88,6 +88,6 @@ function assertDialOutConfig(cfg) {
 }
 
 module.exports = {
-  readDialOutConfig,
-  assertDialOutConfig
+  loadConfig,
+  validateConfig
 };

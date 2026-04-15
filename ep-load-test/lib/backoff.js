@@ -6,11 +6,11 @@
  * @param {{ initialMs: number; maxMs: number }} opts
  * @returns {number} milliseconds to sleep before the next attempt
  */
-function fullJitterBackoffMs(attempt, opts) {
+function jitterBackoff(attempt, opts) {
   const { initialMs, maxMs } = opts;
   const exponential = initialMs * 2 ** attempt;
   const capped = Math.min(exponential, maxMs);
   return Math.floor(Math.random() * (capped + 1));
 }
 
-module.exports = { fullJitterBackoffMs };
+module.exports = { jitterBackoff };

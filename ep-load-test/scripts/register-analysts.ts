@@ -9,7 +9,7 @@ import {
 } from './register-analysts-config';
 import { stripUndefined, writeJsonLog } from './register-analysts-logging';
 import { parseLabeledJson } from './register-analysts-json';
-import { fullJitterBackoffMs } from '../lib/fullJitterBackoff.js';
+import { jitterBackoff } from '../lib/backoff.js';
 import type {
   AnalystPayloadRecord,
   EpRegistrationResponse,
@@ -240,7 +240,7 @@ async function fetchWithRetry(
       return { ok: false, status: res.status, bodyText: lastBody };
     }
     if (attempt < MAX_ATTEMPTS - 1) {
-      const backoffMs = fullJitterBackoffMs(attempt, {
+      const backoffMs = jitterBackoff(attempt, {
         initialMs: INITIAL_TRANSIENT_BACKOFF_MS,
         maxMs: MAX_TRANSIENT_BACKOFF_MS,
       });

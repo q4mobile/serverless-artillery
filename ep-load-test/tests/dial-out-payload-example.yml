@@ -9,19 +9,19 @@
 #        export DIALOUT_PARTICIPANTS_TABLE_NAME=events-streaming-serverless-conference-participants-dev
 #        export PRODUCTION_SMA_ID=sma-prod-xxxxxxxx   # optional guard
 #   Optional: DIALOUT_POLL_TIMEOUT_MS, DIALOUT_POLL_INTERVAL_MS — see README.
-#   Correlation SIP header, Dynamo GSI/attr, call-connection strings, and hand_raised / call_connection_state are fixed in code (dialOutConfig.js) to match events-streaming.
+#   Correlation SIP header, Dynamo GSI/attr, call-connection strings, and hand_raised / call_connection_state are fixed in code (config.js) to match events-streaming.
 #
 #   3. Run from ep-load-test:
 #        npx artillery run tests/dial-out-payload-example.yml
 #
 # Flow (see scenario below):
-#   dialOutAnalyst → waitForAwaitingMeetingIdStatus → sendMeetingIdDtmf →
-#   waitForAwaitingMeetingPinStatus → sendPinDtmf
-# After connected, optional *0 (human intake): sendHumanIntakeDtmf → waitForAfterHumanIntakeStatus — uncomment below if needed.
-# Toggle hand: toggleHandDtmf (*1#) → waitForHandRaised or waitForHandLowered (polls hand_raised, not call_connection_state).
-# Full cycle example: toggleHandDtmf → waitForHandRaised → toggleHandDtmf → waitForHandLowered.
-# Then: think → hangUpDialOut (UpdateSipMediaApplicationCall with loadTestHangup; SMA returns Hangup)
-# → waitForDisconnectedStatus (poll DISCONNECTED, same pattern as events-streaming).
+#   dialParticipant → waitForMeetingIdPrompt → enterMeetingId →
+#   waitForPinPrompt → enterPin
+# After connected, optional *0 (human intake): sendHumanIntake → waitAfterHumanIntake — uncomment below if needed.
+# Toggle hand: toggleHand (*1#) → waitForHandUp or waitForHandDown (polls hand_raised, not call_connection_state).
+# Full cycle example: toggleHand → waitForHandUp → toggleHand → waitForHandDown.
+# Then: think → hangUp (UpdateSipMediaApplicationCall with loadTestHangup; SMA returns Hangup)
+# → waitForDisconnected (poll DISCONNECTED, same pattern as events-streaming).
 #
 # duration × arrivalRate ≤ CSV rows
 #
@@ -34,36 +34,39 @@ config:
   ensure:
     maxErrorRate: 0
   phases:
-    - duration: 1
+    - duration: 30 # !!! IMPORTANT: duration × arrivalRate must match CSV rows
       arrivalRate: 1
       name: "Dial out analysts at 1 call/sec"
   payload:
-    path: "./data/analysts-payload.csv"
+    path: "../data/analysts-payload.csv"
     fields:
       - "attendeeId"
       - "pin"
       - "email"
       - "meetingId"
     order: sequence
-  processor: "./hooks/dialOutProcessor.js"
+  processor: "../hooks/dialOutProcessor.js"
 
 scenarios:
   - name: "Dial out one analyst via Chime SMA (Dynamo-gated)"
     flow:
-      - function: dialOutAnalyst
-      - function: waitForAwaitingMeetingIdStatus
-      - function: sendMeetingIdDtmf
-      - function: waitForAwaitingMeetingPinStatus
-      - function: sendPinDtmf
-      - function: waitForConnectedStatus
-      - function: toggleHandDtmf
-      - function: waitForHandRaised
-      - function: toggleHandDtmf
-      - function: waitForHandLowered
-      # Optional *0 (expects INITIATE_TRANSFER_FROM_CHIME_TO_SUPPORT when LEG_B connected; see dialOutConfig.js if you need TRANSFERRING_TO_SUPPORT):
-      # - function: sendHumanIntakeDtmf
-      # - function: waitForAfterHumanIntakeStatus
+      - function: dialParticipant
+      - log: "Dialed out attendeeId={{ attendeeId }} meetingId={{ meetingId }}"
+      - function: waitForMeetingIdPrompt
+      - function: enterMeetingId
+      - function: waitForPinPrompt
+      - function: enterPin
+      - function: waitForConnected
       - think: 60
-      - function: hangUpDialOut
-      - function: waitForDisconnectedStatus
-      - log: "Dialed out attendeeId={{ attendeeId }} meetingId={{ meetingId }} txnId={{ transactionId }}"
+      - function: toggleHand
+      - function: waitForHandUp
+      - think: 60
+      - function: toggleHand
+      - function: waitForHandDown
+      # Optional *0 (expects INITIATE_TRANSFER_FROM_CHIME_TO_SUPPORT when LEG_B connected; see config.js if you need TRANSFERRING_TO_SUPPORT):
+      # - function: sendHumanIntake
+      # - function: waitAfterHumanIntake
+      - think: 120
+      - function: hangUp
+      - function: waitForDisconnected
+      - function: hangUpOnError # no-op on success; hangs up any live call left open by an earlier error

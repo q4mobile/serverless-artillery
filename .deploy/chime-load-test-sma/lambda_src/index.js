@@ -1,9 +1,5 @@
 /**
- * Chime SIP Media Application Lambda for **load-test** traffic (Dynamo-gated dial-out only).
- *
- * Outbound: CALL_ANSWERED → empty Actions (worker polls Dynamo + UpdateSipMediaApplicationCall).
- * CALL_UPDATE_REQUESTED → SendDigits from Arguments.loadTestDigits, or Hangup when Arguments.loadTestHangup is true.
- * Inbound (optional): NEW_INBOUND_CALL → Answer → ACTION_SUCCESSFUL(Answer) → Hangup.
+ * Chime SIP Media Application Lambda Event Handler for load test traffic.
  */
 
 "use strict";
