@@ -1,39 +1,58 @@
 /**
  * Artillery processor entry: load config + Chime/Dynamo clients, export dial-out hooks.
  *
- * See ../lib/dialOutHooks.js for the scenario steps and ../types/dialOut.ts for vars.
+ * See ../lib/scenarioSteps.js for the scenario steps and ../types/dialOut.ts for vars.
  */
 
-const { sleep } = require("../lib/chimeThrottleRetry.js");
+const { sleep } = require("../lib/retryWithBackoff.js");
 const {
-  readDialOutConfig,
-  assertDialOutConfig
-} = require("../lib/dialOutConfig.js");
+  loadConfig,
+  validateConfig
+} = require("../lib/config.js");
 const {
-  logJson,
-  redactPin,
-  getDialOutFlowDurationMs,
-  emitDialOutFlowFailure,
-  logDialOutProcessorLoaded
-} = require("../lib/dialOutLog.js");
-const { createDialOutChimeApi } = require("../lib/dialOutChime.js");
-const { createDialOutDynamoApi } = require("../lib/dialOutDynamo.js");
-const { createDialOutHooks } = require("../lib/dialOutHooks.js");
+  log,
+  maskPin,
+  elapsedMs,
+  failScenario,
+  logPolling,
+  logPollingHandFlag,
+  logStartup
+} = require("../lib/loadTestLogger.js");
+const {
+  buildCallRequest,
+  extractTransactionId,
+  dialOut,
+  sendSipUpdate
+} = require("../lib/chimeClient.js");
+const { waitForCallStatus, waitForHandFlag } = require("../lib/participantPoller.js");
+const { createSteps } = require("../lib/scenarioSteps.js");
 
-const config = readDialOutConfig();
-assertDialOutConfig(config);
-logDialOutProcessorLoaded(config);
+const config = loadConfig();
+validateConfig(config);
+logStartup(config);
 
-const chime = createDialOutChimeApi(config, { logJson });
-const dynamo = createDialOutDynamoApi(config, { logJson });
+const chime = {
+  buildCallRequest: (correlationId, meetingIdStr, attendeeId, pinStr) =>
+    buildCallRequest(config, correlationId, meetingIdStr, attendeeId, pinStr),
+  extractTransactionId,
+  dialOut,
+  sendSipUpdate: (transactionId, argumentsMap, ctx) =>
+    sendSipUpdate(config.smaId, transactionId, argumentsMap, ctx)
+};
+const dynamo = {
+  logPolling,
+  waitForCallStatus: (correlationId, targetStatus) => waitForCallStatus(config, correlationId, targetStatus),
+  logPollingHandFlag,
+  waitForHandFlag: (correlationId, expectedBoolean) => waitForHandFlag(config, correlationId, expectedBoolean)
+};
 
-module.exports = createDialOutHooks({
+module.exports = createSteps({
   config,
   chime,
   dynamo,
   sleep,
-  logJson,
-  redactPin,
-  getDialOutFlowDurationMs,
-  emitDialOutFlowFailure
+  log,
+  maskPin,
+  elapsedMs,
+  failScenario
 });
