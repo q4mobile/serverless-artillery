@@ -25,7 +25,7 @@ const {
   sendSipUpdate
 } = require("../lib/chimeClient.js");
 const { waitForCallStatus, waitForHandFlag } = require("../lib/participantPoller.js");
-const { createSteps } = require("../lib/scenarioSteps.js");
+const { createSteps, saveParticipantResult } = require("../lib/scenarioSteps.js");
 
 const config = loadConfig();
 validateConfig(config);
@@ -46,13 +46,16 @@ const dynamo = {
   waitForHandFlag: (correlationId, expectedBoolean) => waitForHandFlag(config, correlationId, expectedBoolean)
 };
 
-module.exports = createSteps({
-  config,
-  chime,
-  dynamo,
-  sleep,
-  log,
-  maskPin,
-  elapsedMs,
-  failScenario
-});
+module.exports = {
+  ...createSteps({
+    config,
+    chime,
+    dynamo,
+    sleep,
+    log,
+    maskPin,
+    elapsedMs,
+    failScenario
+  }),
+  saveParticipantResult
+};

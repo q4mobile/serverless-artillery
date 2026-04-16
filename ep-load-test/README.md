@@ -43,6 +43,19 @@ npm run register-analysts
 
 Plan file format (`data/registration-plan.json`, copy from `data/registration-plan.example.json`):
 
+**Main production-scale scenario — 4 parallel meetings, 225 analysts each (900 total):** use four rows with real `meetingId` values (replace placeholders in `registration-plan.example.json`), `analystCount: 225` each, then run `npm run register-analysts`. The generated CSV must have **900** data rows; `tests/dial-out-payload-example.yml` uses `arrivalCount: 900` and `duration: 300` to match.
+
+```json
+[
+  { "meetingId": 111111111, "analystCount": 225, "registrationPassword": "optional-per-meeting-secret" },
+  { "meetingId": 222222222, "analystCount": 225, "registrationPassword": "optional-per-meeting-secret" },
+  { "meetingId": 333333333, "analystCount": 225, "registrationPassword": "optional-per-meeting-secret" },
+  { "meetingId": 444444444, "analystCount": 225, "registrationPassword": "optional-per-meeting-secret" }
+]
+```
+
+Smaller smoke example:
+
 ```json
 [
   { "meetingId": 456606437, "analystCount": 20, "registrationPassword": "optional-per-meeting-secret" }
@@ -96,7 +109,19 @@ PRODUCTION_SMA_ID="sma-prod-xxxxxxxx" \
 
 - Test SMA deployed: see [../.deploy/chime-load-test-sma/README.md](../.deploy/chime-load-test-sma/README.md)
 - `data/analysts-payload.csv` exists (Step 1)
-- `duration × arrivalRate` in the YAML **exactly equals** the number of CSV rows
+- **Load phases** in `tests/dial-out-payload-example.yml` match the CSV data row count (see below). Default main scenario: **900** rows ↔ **`arrivalCount: 900`**.
+
+### Load phases (ramp-up)
+
+**IMPORTANT:** Total scenario starts in `config.phases` must equal the number of CSV **data** rows (no header). The checked-in default is **900** rows (4 meetings × 225 analysts) and **`arrivalCount: 900`**. If these differ, you get duplicate dials or unused rows.
+
+With `payload.order: sequence`, each **new scenario** consumes the next CSV row. The **total number of scenario starts** across all `phases` must equal the number of **data** rows in `analysts-payload.csv` (excluding the header), or Artillery will reuse rows and dial the same analyst twice.
+
+**Option A — even spacing (recommended):** `arrivalCount` + `duration`. Artillery spreads exactly `arrivalCount` new scenarios across `duration` seconds (smooth ramp of *origination times*). The default `dial-out-payload-example.yml` targets **900** starts (4 meetings × 225 analysts) over **5 minutes** → `arrivalCount: 900`, `duration: 300`. For a single meeting of 225, use `arrivalCount: 225` instead.
+
+**Option B — stepped rate ramp:** `arrivalRate` + `rampTo` + `duration`. In this repo’s Artillery build, rates are **integers** only; total starts are **approximate** (probabilistic ramp). Use a short rehearsal and compare “Scenarios launched” to your CSV, or prefer **Option A** when the row count must match exactly.
+
+Tune `duration` / `arrivalCount` / `arrivalRate` / `rampTo` to your target (e.g. **900** starts over 5 minutes for 4×225, or a smaller smoke run).
 
 ### Run
 
@@ -206,10 +231,64 @@ aws lambda add-permission \
 
 ## Stability checklist
 
-1. `duration × arrivalRate` (Artillery) equals CSV row count — otherwise the same attendee is dialled twice.
+1. Total scenario **starts** in Artillery `phases` equals CSV **data** row count (prefer `arrivalCount` + `duration` for an exact match) — otherwise the same attendee is dialled twice.
 2. `DIALOUT_POLL_TIMEOUT_MS` ≥ `60000` when 5+ participants share one meeting — concurrent joins take longer to propagate through the GSI.
 3. Lambda resource policy on `conferenceEventHandler` is present (see above).
 4. Test SMA Lambda deployed and the SMA points to it.
+
+---
+
+## Step 3 — Post-run report
+
+After Artillery finishes, run the report script. No AWS credentials or DynamoDB access needed — the peak state of every participant is captured in-process during the scenario (before cleanup/hangup) and written to `data/run-state.ndjson`. The example Artillery script declares `afterScenario: [saveParticipantResult]` on the scenario (the HTTP engine does not run processor exports unless they appear in the flow or in `afterScenario` / `beforeScenario`).
+
+```bash
+npm run report
+```
+
+Sample output:
+
+```
+Load test report
+  Run:          2026-04-14T19:08:00.000Z
+  Meetings:     456606437
+  Participants: 20
+
+────────────────────────────────────────────────────────────────
+  Successfully connected:      17  (85.0%)
+  Completed full flow:         15  (75.0%)
+  Aborted (Artillery):          2  (10.0%)
+  Hand raised at peak:          5  (25.0%)
+
+  By peak call state (before cleanup):
+   ✓ CONNECTED                                       17  (85.0%)
+   ✓ DISCONNECTED                                    15  (75.0%)
+     AWAITING_MEETING_PIN                             2  (10.0%)
+     NEVER_REACHED_DYNAMO                             1  ( 5.0%)
+────────────────────────────────────────────────────────────────
+
+  Participants that did not complete (5):
+  attendeeId                 meetingId    peakCallState                  aborted
+  ──────────────────────────────────────────────────────────────────────────────
+  69debc9d...                456606437    AWAITING_MEETING_PIN           false
+  ...
+
+  Full report → data/run-report.json
+```
+
+Each run gets a unique `runId` (ISO timestamp). Subsequent Artillery runs append to `data/run-state.ndjson` — the report always uses the most recent run by default. To report a specific past run:
+
+```bash
+RUN_ID="2026-04-14T19:08:00.000Z" npm run report
+```
+
+### Report env vars
+
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `RUN_STATE_PATH` | No | `data/run-state.ndjson` | Written by Artillery's `afterScenario` hook |
+| `REPORT_PATH` | No | `data/run-report.json` | Full JSON output |
+| `RUN_ID` | No | most recent | Report a specific past run |
 
 ---
 
@@ -218,6 +297,7 @@ aws lambda add-permission \
 | Command | Purpose |
 |---|---|
 | `npm run register-analysts` | Pre-register analysts, write `data/analysts-payload.csv` |
-| `npm test` | All Vitest unit tests |
-| `npm run test:watch` | Vitest watch mode |
+| `npm run report` | Post-run report (reads `data/run-state.ndjson`, no DynamoDB needed) |
+| `npm test` | All Vitest unit tests (same as `npm run test:scripts`) |
+| `npm run test:watch` | Vitest watch mode (same as `npm run test:scripts:watch`) |
 | `npm run typecheck` | TypeScript check |

@@ -1,7 +1,22 @@
 [
   {
-    "meetingId": 913156511,
-    "analystCount": 7,
+    "meetingId": 100000001,
+    "analystCount": 225,
+    "registrationPassword": "optional-per-meeting-secret"
+  },
+  {
+    "meetingId": 100000002,
+    "analystCount": 225,
+    "registrationPassword": "optional-per-meeting-secret"
+  },
+  {
+    "meetingId": 100000003,
+    "analystCount": 225,
+    "registrationPassword": "optional-per-meeting-secret"
+  },
+  {
+    "meetingId": 100000004,
+    "analystCount": 225,
     "registrationPassword": "optional-per-meeting-secret"
   }
 ]
