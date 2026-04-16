@@ -5,7 +5,9 @@
   "license": "Apache-2.0",
   "scripts": {
     "register-analysts": "tsx scripts/register-analysts.ts",
-    "orchestrate": "tsx scripts/orchestrate-load-test.ts",
+    "report": "tsx scripts/report-load-test.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:scripts": "vitest run",
     "test:scripts:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json"
@@ -26,7 +28,6 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",
-    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.0",
     "tsx": "^4.7.1",
     "typescript": "^5.4.5",

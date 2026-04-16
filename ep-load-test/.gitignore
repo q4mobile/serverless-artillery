@@ -1,3 +1,6 @@
+!docs/
+data/run-state.ndjson
+data/run-report.json
 data/analysts-payload.csv
 data/registration-plan.json
 scripts/*.key

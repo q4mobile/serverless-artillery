@@ -8,7 +8,41 @@
  */
 
 const { randomUUID } = require("crypto");
+const { appendFileSync, mkdirSync } = require("fs");
+const { resolve, dirname } = require("path");
 const { markFailed } = require("./loadTestLogger.js");
+
+// Single run id shared across all VUs in this Artillery process.
+const RUN_ID = new Date().toISOString();
+
+function runStatePath() {
+  return resolve(process.cwd(), process.env.RUN_STATE_PATH || "data/run-state.ndjson");
+}
+
+/**
+ * Artillery afterScenario hook — appends one JSON line per participant to run-state.ndjson.
+ * Peak state is captured in scenario vars during the flow; `npm run report` reads this file only (no DynamoDB).
+ */
+function saveParticipantResult(context, events, done) {
+  const v = context.vars;
+  const record = JSON.stringify({
+    runId: RUN_ID,
+    attendeeId: v.attendeeId,
+    correlationId: v.correlationId,
+    meetingId: v.meetingId,
+    aborted: Boolean(v.__dialOutScenarioAborted),
+    peakCallState: v.__peakCallState ?? null,
+    peakHandRaised: v.__peakHandRaised ?? null
+  });
+  try {
+    const p = runStatePath();
+    mkdirSync(dirname(p), { recursive: true });
+    appendFileSync(p, record + "\n", "utf8");
+  } catch (err) {
+    console.warn("[ep-load-test] saveParticipantResult: could not write run state:", err.message);
+  }
+  return done();
+}
 
 function callCtxFromVars(v) {
   return {
@@ -29,9 +63,9 @@ function createSteps({
   failScenario
 }) {
   // Guard against duplicate calls to the same attendee.
-  // Artillery's payload order: sequence ensures each row is used once, but if
-  // duration × arrivalRate > CSV rows the sequence wraps and the same attendeeId
-  // is reused.  We catch that here and fail the scenario early rather than placing
+  // Artillery's payload order: sequence ensures each row is used once, but if total
+  // scenario starts across phases exceed CSV data rows the sequence wraps and the same
+  // attendeeId is reused. We catch that here and fail the scenario early rather than placing
   // a second Chime call on a participant who is already on the line.
   const dialedAttendeeIds = new Set();
 
@@ -50,11 +84,11 @@ function createSteps({
     const { attendeeId, pin, meetingId } = context.vars;
 
     // Duplicate-dial guard: fail immediately if this attendeeId was already dialled
-    // in this run.  Root cause is always duration × arrivalRate > CSV rows.
+    // in this run. Root cause: total scenario starts in Artillery phases > CSV data rows.
     if (dialedAttendeeIds.has(attendeeId)) {
       const err = new Error(
         `Duplicate dial attempt for attendeeId=${attendeeId} — ` +
-          "check that duration × arrivalRate does not exceed the number of CSV rows"
+          "check that total starts in config.phases (e.g. sum of arrivalCount) does not exceed CSV data rows (900 for 4×225)"
       );
       log({
         lvl: "ERROR",
@@ -124,6 +158,7 @@ function createSteps({
     const callCtx = callCtxFromVars(v);
     dynamo.logPolling(targetStatus, callCtx);
     await dynamo.waitForCallStatus(String(v.correlationId), targetStatus);
+    v.__peakCallState = targetStatus;
     events.emit("counter", counterMetric, 1);
   }
 
@@ -214,6 +249,7 @@ function createSteps({
     const callCtx = callCtxFromVars(v);
     dynamo.logPollingHandFlag(expectedBoolean, callCtx);
     await dynamo.waitForHandFlag(String(v.correlationId), expectedBoolean);
+    v.__peakHandRaised = expectedBoolean;
     events.emit("counter", counterMetric, 1);
   }
 
@@ -569,4 +605,4 @@ function createSteps({
   };
 }
 
-module.exports = { createSteps };
+module.exports = { createSteps, saveParticipantResult };

@@ -2,6 +2,7 @@
 #
 # Prerequisites:
 #   1. Pre-register analysts → data/analysts-payload.csv (attendeeId, pin, email, meetingId).
+#      Main scenario: 4 meetings × 225 analysts = 900 CSV rows (see registration-plan.example.json).
 #   2. Required env (do not commit secrets):
 #        export LOAD_TEST_SMA_ID=sma-xxxxxxxx
 #        export LOAD_TEST_FROM_PHONE=+14155551234
@@ -23,20 +24,33 @@
 # Then: think → hangUp (UpdateSipMediaApplicationCall with loadTestHangup; SMA returns Hangup)
 # → waitForDisconnected (poll DISCONNECTED, same pattern as events-streaming).
 #
-# duration × arrivalRate ≤ CSV rows
+# IMPORTANT: Total scenario starts in `config.phases` must equal the number of CSV **data**
+# rows (no header). Main scenario = **900** rows (4 meetings × 225). Set `arrivalCount` (or
+# sum of starts across phases) to match — see README ("Load phases"). If starts exceed rows,
+# Artillery reuses rows and you get duplicate dials.
 #
 # Failures: Artillery HTTP engine ignores done(err) on - function: steps; hooks emit('error', msg)
 # on the scenario emitter so aggregate "errors" and ensure.maxErrorRate: 0 work. Later hooks
 # no-op after a failure (__dialOutScenarioAborted) to avoid extra Chime/Dynamo calls.
+#
+# Reporting: `afterScenario: saveParticipantResult` appends one NDJSON line per participant
+# (see README → npm run report). Required by Artillery HTTP engine — exporting the function
+# from the processor alone is not enough.
 
 config:
   target: "https://attendees.dev.events.q4inc.com/rest/v1"
   ensure:
     maxErrorRate: 0
   phases:
-    - duration: 30 # !!! IMPORTANT: duration × arrivalRate must match CSV rows
-      arrivalRate: 1
-      name: "Dial out analysts at 1 call/sec"
+    # Main scenario: 4 meetings × 225 participants = 900 rows in analysts-payload.csv.
+    # Register analysts first (registration-plan.json with four meetingId entries, analystCount 225 each).
+    # - duration: 300
+    #   arrivalCount: 900
+    #   name: "900 dial-outs (4×225) spread over 5 minutes"
+    # Smoke / dev — comment out the phase above and uncomment:
+    - duration: 120
+      arrivalCount: 20
+      name: "20 dial-outs over 2 minutes"
   payload:
     path: "../data/analysts-payload.csv"
     fields:
@@ -48,7 +62,9 @@ config:
   processor: "../hooks/dialOutProcessor.js"
 
 scenarios:
-  - name: "Dial out one analyst via Chime SMA (Dynamo-gated)"
+  - name: "Dial out analysts via Chime SMA (Dynamo-gated)"
+    afterScenario:
+      - saveParticipantResult
     flow:
       - function: dialParticipant
       - log: "Dialed out attendeeId={{ attendeeId }} meetingId={{ meetingId }}"
