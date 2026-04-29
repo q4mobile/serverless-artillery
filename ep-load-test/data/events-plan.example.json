@@ -1,0 +1,16 @@
+[
+  {
+    "title": "Load test event 1",
+    "analystCount": 10,
+    "eventType": "earnings",
+    "eventStart": "2026-04-29T13:00:00.000Z",
+    "eventEnd": "2026-04-29T14:00:00.000Z"
+  },
+  {
+    "title": "Load test event 2",
+    "analystCount": 10,
+    "eventType": "earnings",
+    "eventStart": "2026-04-29T13:00:00.000Z",
+    "eventEnd": "2026-04-29T14:00:00.000Z"
+  }
+]

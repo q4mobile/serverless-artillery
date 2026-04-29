@@ -4,6 +4,7 @@
   "repository": "n/a",
   "license": "Apache-2.0",
   "scripts": {
+    "create-events": "tsx scripts/create-events.ts",
     "register-analysts": "tsx scripts/register-analysts.ts",
     "report": "tsx scripts/report-load-test.ts",
     "test": "vitest run",

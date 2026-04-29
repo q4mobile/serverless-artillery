@@ -20,6 +20,61 @@ Two ways to run:
 
 ---
 
+## Step 0 — (Optional) Create events on the Events Platform
+
+Skip this if you already have `meetingId` values. Otherwise create internal digital conferencing events first; the script writes `data/registration-plan.json`, which Step 1 consumes.
+
+`Q4_ADMIN_TOKEN` is the raw JWT from browser localStorage (`dev.authToken-platform`, `stage.authToken-platform`, etc.). It expires, so refresh it when the API returns 401.
+
+```bash
+Q4_ADMIN_TOKEN="eyJhbGc..." \
+EVENTS_PLAN_PATH="data/events-plan.json" \
+npm run create-events
+```
+
+Plan file format (`data/events-plan.json`, copy from `data/events-plan.example.json`):
+
+```json
+[
+  {
+    "title": "Load Test Event #1",
+    "analystCount": 250,
+    "eventType": "earnings",
+    "eventStart": "2026-04-29T13:00:00.000Z",
+    "eventEnd": "2026-04-29T14:00:00.000Z"
+  }
+]
+```
+
+The payload defaults to internal Chime conferencing with dial-in speaker, layout manager, external output, captions, and dual stream enabled.
+
+Output: `data/registration-plan.json` (overwritten on each run) shaped exactly like `data/registration-plan.example.json` so `npm run register-analysts` picks it up automatically.
+
+### Create-events env vars
+
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `Q4_ADMIN_TOKEN` | Yes | — | **Secret.** Admin platform JWT from browser localStorage. Never logged. |
+| `EP_API_GRAPHQL_BASE_URL` | No | `https://dev.events.q4inc.com` | GraphQL host root; POSTs go to `${host}/graphql`. |
+| `EP_COMPANY_ID` | No | dev companyId | Sent as `x-company-id` header; must match the tenant the token can administer. Update for stage/prod. |
+| `EVENTS_PLAN_PATH` | No | `data/events-plan.json` | Input plan file. |
+| `REGISTRATION_PLAN_OUTPUT_PATH` | No | `data/registration-plan.json` | Output plan file (consumed by Step 1). Overwritten. |
+| `CREATE_EVENT_DELAY_MS` | No | `100` | Delay between create-event requests. |
+| `CREATE_EVENT_FETCH_TIMEOUT_MS` | No | `0` | `0` = disabled; otherwise per-request `AbortSignal.timeout`. |
+| `CREATE_EVENT_DEFAULT_TYPE` | No | `earnings` | Default `eventType` for entries that omit it. |
+
+**Production safety:** the defaults target dev. To create on stage / prod set `EP_API_GRAPHQL_BASE_URL` and `EP_COMPANY_ID` explicitly (values per env are in `events-platform/client/events-app/e2e/config.ts`). Do not point at prod unintentionally — events created via this CLI are real.
+
+End-to-end command sequence (with no pre-existing meetings):
+
+```bash
+Q4_ADMIN_TOKEN="eyJhbGc..." npm run create-events
+ANALYST_REGISTRATION_PASSWORD="secret" npm run register-analysts
+npx artillery run tests/dial-out-payload-example.yml
+```
+
+---
+
 ## Step 1 — Pre-register analysts
 
 Run once before any load test to generate `data/analysts-payload.csv` (attendeeId, pin, email, meetingId).
@@ -296,6 +351,7 @@ RUN_ID="2026-04-14T19:08:00.000Z" npm run report
 
 | Command | Purpose |
 |---|---|
+| `npm run create-events` | Create events via GraphQL `createEvent`, write `data/registration-plan.json` |
 | `npm run register-analysts` | Pre-register analysts, write `data/analysts-payload.csv` |
 | `npm run report` | Post-run report (reads `data/run-state.ndjson`, no DynamoDB needed) |
 | `npm test` | All Vitest unit tests (same as `npm run test:scripts`) |
