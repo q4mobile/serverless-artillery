@@ -48,9 +48,9 @@ config:
     #   arrivalCount: 900
     #   name: "900 dial-outs (4×225) spread over 5 minutes"
     # Smoke / dev — comment out the phase above and uncomment:
-    - duration: 120
-      arrivalCount: 20
-      name: "20 dial-outs over 2 minutes"
+    - duration: 30
+      arrivalCount: 4
+      name: "4 dial-outs (2×2) over 30 seconds"
   payload:
     path: "../data/analysts-payload.csv"
     fields:

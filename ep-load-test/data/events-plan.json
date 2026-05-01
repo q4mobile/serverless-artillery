@@ -1,0 +1,16 @@
+[
+  {
+    "title": "Load Test Event 1 - Smoke",
+    "analystCount": 2,
+    "eventType": "earnings",
+    "eventStart": "2026-04-30T20:00:00.000Z",
+    "eventEnd": "2026-04-30T21:00:00.000Z"
+  },
+  {
+    "title": "Load Test Event 2 - Smoke",
+    "analystCount": 2,
+    "eventType": "earnings",
+    "eventStart": "2026-04-30T20:00:00.000Z",
+    "eventEnd": "2026-04-30T21:00:00.000Z"
+  }
+]

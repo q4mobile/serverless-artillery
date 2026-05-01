@@ -4,8 +4,13 @@
   "repository": "n/a",
   "license": "Apache-2.0",
   "scripts": {
+    "load-test": "tsx scripts/run-load-test.ts",
     "create-events": "tsx scripts/create-events.ts",
     "register-analysts": "tsx scripts/register-analysts.ts",
+    "start-event": "tsx scripts/start-event.ts",
+    "end-event": "tsx scripts/end-event.ts",
+    "start-broadcast": "tsx scripts/start-broadcast.ts",
+    "stop-broadcast": "tsx scripts/stop-broadcast.ts",
     "report": "tsx scripts/report-load-test.ts",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -29,6 +34,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.0",
     "tsx": "^4.7.1",
     "typescript": "^5.4.5",
