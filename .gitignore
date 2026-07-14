@@ -49,3 +49,4 @@ jspm_packages
 
 #Serverless
 **/.serverless
+ep-load-test/data/events-plan.json

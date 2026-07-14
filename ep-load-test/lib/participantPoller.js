@@ -4,9 +4,17 @@
 
 const { DynamoDBClient, QueryCommand } = require("@aws-sdk/client-dynamodb");
 const { unmarshall } = require("@aws-sdk/util-dynamodb");
+const { fromIni } = require("@aws-sdk/credential-providers");
+
+// The participants table lives in the account under test (e.g. stage), which may
+// differ from the account that originates the call (see LOAD_TEST_CHIME_AWS_PROFILE
+// in chimeClient.js). Set LOAD_TEST_TARGET_AWS_PROFILE to a named AWS CLI profile
+// for that account; omit it to fall back to the default credential chain.
+const targetAwsProfile = process.env.LOAD_TEST_TARGET_AWS_PROFILE;
 
 const dynamoClient = new DynamoDBClient({
-  region: process.env.AWS_REGION || "us-east-1"
+  region: process.env.AWS_REGION || "us-east-1",
+  ...(targetAwsProfile ? { credentials: fromIni({ profile: targetAwsProfile }) } : {})
 });
 
 async function queryByCorrelationId(config, correlationId) {
