@@ -12,14 +12,22 @@ This stack is intentionally smaller than the `chime-sma` Terraform in the **even
 
 ## Apply
 
+Pick the backend config for the AWS account that will **originate** the calls (see
+[../../ep-load-test/README.md](../../ep-load-test/README.md) — dial-out currently runs
+from the **prod** account, `backend.prod.hcl`, while the target under test is a
+different environment such as stage):
+
 ```bash
 cd .deploy/chime-load-test-sma
-cp backend.hcl.example backend.hcl             # set bucket/key/region/table
-terraform init -reconfigure -backend-config=backend.hcl
+terraform init -reconfigure -backend-config=backend.prod.hcl   # or backend.dev.hcl / backend.stage.hcl
 cp terraform.tfvars.example terraform.tfvars   # optional
 terraform plan
 terraform apply
 ```
+
+Terraform's `aws` provider uses whatever AWS credentials are active in your shell at
+apply time (`AWS_PROFILE`, SSO session, etc.) — make sure that resolves to the account
+matching the backend config you picked, not the account you're testing against.
 
 ## Outputs
 

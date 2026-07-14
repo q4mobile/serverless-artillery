@@ -63,7 +63,7 @@ Output: `data/registration-plan.json` (overwritten on each run) shaped exactly l
 | `CREATE_EVENT_FETCH_TIMEOUT_MS` | No | `0` | `0` = disabled; otherwise per-request `AbortSignal.timeout`. |
 | `CREATE_EVENT_DEFAULT_TYPE` | No | `earnings` | Default `eventType` for entries that omit it. |
 
-**Production safety:** the defaults target dev. To create on stage / prod set `EP_API_GRAPHQL_BASE_URL` and `EP_COMPANY_ID` explicitly (values per env are in `events-platform/client/events-app/e2e/config.ts`). Do not point at prod unintentionally — events created via this CLI are real.
+**Production safety:** the defaults target dev. To create on stage / prod set `EP_API_GRAPHQL_BASE_URL` and `EP_COMPANY_ID` explicitly (values per env are in `events-platform/client/events-app/e2e/config.ts`). Do not point at prod unintentionally — events created via this CLI are real. **Current load tests target stage** (`EP_API_GRAPHQL_BASE_URL`/`EP_API_BASE_URL` → stage host, `EP_COMPANY_ID` → stage company id) even though call origination (`LOAD_TEST_SMA_ID`, the Chime SMA) runs from prod — see [Call-origination account vs. target-under-test account](#call-origination-account-vs-target-under-test-account) below.
 
 End-to-end command sequence (with no pre-existing meetings):
 
@@ -230,12 +230,41 @@ waitAfterHumanIntake           → poll DynamoDB until call_connection_state = I
 |---|---|---|---|
 | `LOAD_TEST_SMA_ID` | Yes | — | **Secret.** Dedicated test SMA id — never production |
 | `LOAD_TEST_FROM_PHONE` | Yes | — | E.164 caller id (e.g. `+14155551234`) |
-| `LOAD_TEST_TO_PHONE` | Yes | — | E.164 PSTN number the SMA answers on |
-| `DIALOUT_PARTICIPANTS_TABLE_NAME` | Yes | — | Conference participants DynamoDB table name |
+| `LOAD_TEST_TO_PHONE` | Yes | — | E.164 PSTN number the SMA answers on — this determines which environment's IVR (and therefore which environment is actually under test) picks up the call |
+| `DIALOUT_PARTICIPANTS_TABLE_NAME` | Yes | — | Conference participants DynamoDB table name, in the environment under test |
 | `PRODUCTION_SMA_ID` | No | — | If set and matches `LOAD_TEST_SMA_ID`, processor refuses to start |
 | `DIALOUT_POLL_TIMEOUT_MS` | No | `60000` | Max ms to wait per DynamoDB status poll |
 | `DIALOUT_POLL_INTERVAL_MS` | No | `400` | DynamoDB poll interval in ms |
 | `AWS_REGION` | No | `us-east-1` | AWS region for Chime and DynamoDB clients |
+| `LOAD_TEST_CHIME_AWS_PROFILE` | No | default credential chain | Named AWS CLI profile used **only** for Chime SDK Voice calls (`CreateSipMediaApplicationCall` / `UpdateSipMediaApplicationCall`) — the account that owns `LOAD_TEST_SMA_ID` (currently prod) |
+| `LOAD_TEST_TARGET_AWS_PROFILE` | No | default credential chain | Named AWS CLI profile used **only** for the DynamoDB participant poll — the account under test (currently stage) |
+
+### Call-origination account vs. target-under-test account
+
+The dedicated test SMA only originates the outbound leg and blindly relays DTMF on
+command (see [../.deploy/chime-load-test-sma/README.md](../.deploy/chime-load-test-sma/README.md));
+the actual application under test — IVR, participant state, broadcast — is whatever
+answers `LOAD_TEST_TO_PHONE`. These two can now live in **different AWS accounts**:
+
+- **Call origination (prod, `q4events-prod` / `357657936979`)**: the `chime-load-test-sma`
+  Terraform stack, `LOAD_TEST_SMA_ID`, `LOAD_TEST_FROM_PHONE`, and `LOAD_TEST_CHIME_AWS_PROFILE`.
+- **Target under test (stage, `q4events-stage` / `149220547089`)**: `LOAD_TEST_TO_PHONE`,
+  `DIALOUT_PARTICIPANTS_TABLE_NAME`, `LOAD_TEST_TARGET_AWS_PROFILE`, and all the
+  `EP_API_GRAPHQL_BASE_URL` / `EP_COMPANY_ID` / `EP_API_BASE_URL` values used by
+  `create-events`, `register-analysts`, and `start-broadcast` / `stop-broadcast`.
+
+Set the two AWS profile env vars to named profiles in your local `~/.aws/config` that
+each resolve to the correct account — `chimeClient.js` and `participantPoller.js` build
+their AWS SDK clients independently, so a single run can hold credentials for both
+accounts at once. `PRODUCTION_SMA_ID` still guards against accidentally pointing
+`LOAD_TEST_SMA_ID` at prod's real inbound conferencing SMA, which now lives in the same
+account as the dedicated test SMA.
+
+**Step 2a (serverless-artillery / Lambda) does not support this split** — the worker
+Lambda runs with a single execution role in a single account, so it can't hold separate
+credentials for two accounts the way a local `npx artillery run` process can. Use
+Step 2b (local Artillery) for cross-account runs; this is also what every load test
+above 20 participants already uses.
 
 ---
 

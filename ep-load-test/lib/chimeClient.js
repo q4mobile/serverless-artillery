@@ -3,14 +3,22 @@ const {
   CreateSipMediaApplicationCallCommand,
   UpdateSipMediaApplicationCallCommand
 } = require("@aws-sdk/client-chime-sdk-voice");
+const { fromIni } = require("@aws-sdk/credential-providers");
 const {
   MAX_RETRIES,
   withRetries
 } = require("./retryWithBackoff.js");
 const { log } = require("./loadTestLogger.js");
 
+// The dial-out SMA lives in whichever AWS account originates the call (e.g. prod),
+// which may differ from the account under test (see LOAD_TEST_TARGET_AWS_PROFILE
+// in participantPoller.js). Set LOAD_TEST_CHIME_AWS_PROFILE to a named AWS CLI
+// profile for that account; omit it to fall back to the default credential chain.
+const chimeAwsProfile = process.env.LOAD_TEST_CHIME_AWS_PROFILE;
+
 const chimeClient = new ChimeSDKVoiceClient({
-  region: process.env.AWS_REGION || "us-east-1"
+  region: process.env.AWS_REGION || "us-east-1",
+  ...(chimeAwsProfile ? { credentials: fromIni({ profile: chimeAwsProfile }) } : {})
 });
 
 /**
