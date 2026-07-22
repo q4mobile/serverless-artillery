@@ -1,6 +1,7 @@
 # Before run, make sure:
 # 1. Update mongodb(M40) to prod size;
 # 2. Update ecs attendee to match prod(8-32);
+# 3. Bump redis to t3.medium;
 
 config:
   target: "https://attendees.stage.events.q4inc.com/rest/v1"
@@ -8,15 +9,19 @@ config:
     max: 10000 # fail if max response time exceeds 5000ms
     maxErrorRate: 4 # fail if error rate exceeds 0%
   phases:
-    - duration: 10 # 5 min
-      arrivalRate: 1 # 166 attendee's per second ~ 10k per minute
-      # rampTo: 300
-      name: "Attendee rest load test 10-1-359887660"
+    - duration: 300 # 5 min
+      arrivalRate: 150 # 188 attendee's per second ~ 10k per minute
+      rampTo: 300
+      name: "Attendee rest load test 1-1-375"
+      # - duration: 10 # 1 min
+      #   arrivalRate: 1 # 188 attendee's per second ~ 10k per minute
+      #   name: "Attendee rest load test 1-1-375"
   processor: "./hooks/generateAuthTokens.js"
   variables:
-    testDuration: 1
-    meetingId: 359887660
-    wsUrl: "wss://attendees.stage.events.q4inc.com/graphql?x-meeting-id=359887660&x-company-id=646d14077cf897e6805dd3e7&ep-wss=true"
+    testDuration: 300
+    # testDuration: 1
+    meetingId: 673182521
+    wsUrl: "wss://attendees.stage.events.q4inc.com/graphql?x-meeting-id=673182521&meetingId=673182521&x-company-id=646d14077cf897e6805dd3e7&ep-wss=true"
 scenarios:
   - name: "Perform Attendee http journey to console"
     flow:
@@ -31,7 +36,7 @@ scenarios:
               as: "access_token"
       - post:
           beforeRequest: setupAttendee
-          url: "/attendee"
+          url: "https://attendees.stage.events.q4inc.com/rest/v2/attendee"
           headers:
             Authorization: "Bearer {{ access_token }}"
           json:
