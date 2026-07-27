@@ -30,9 +30,11 @@ function saveParticipantResult(context, events, done) {
     attendeeId: v.attendeeId,
     correlationId: v.correlationId,
     meetingId: v.meetingId,
+    transactionId: v.transactionId ?? null,
     aborted: Boolean(v.__dialOutScenarioAborted),
     peakCallState: v.__peakCallState ?? null,
-    peakHandRaised: v.__peakHandRaised ?? null
+    peakHandRaised: v.__peakHandRaised ?? null,
+    hungUpByScenario: Boolean(v.__dialOutCallHungUp)
   });
   try {
     const p = runStatePath();

@@ -69,19 +69,25 @@ npm run report
 # 6. If broadcasts are part of the scenario
 npm run start-broadcast   # / npm run stop-broadcast
 
-# 7. Cleanup after any run, aborted or not (ends all events from
-#    registration-plan.json, which disconnects lingering participants).
+# 7. End events (aborted or not) — flips status to ENDED in the platform DB.
 #    Works even on events that were never started — NOT_STARTED -> ENDED
-#    succeeds cleanly — so it's a safe blanket cleanup any time a batch of
-#    created/registered events needs to be abandoned quickly.
+#    succeeds cleanly. IMPORTANT: this does NOT hang up any Chime leg — it
+#    only marks the event ended. See "Post-run verification" below for the
+#    step that actually closes calls.
 npm run end-event
+
+# 8. Verify every launched call is actually closed — mandatory after every
+#    run, not just aborted ones (see Post-run verification below for why).
+npm run cleanup-run
 ```
 
 One-shot orchestrator (`scripts/run-load-test.ts`, `npm run load-test`) runs
 create-events → register-analysts → start-events → Artillery → start-broadcast
-→ (wait) → stop-broadcast → end-events as a single process, auto-extending the
-Artillery YAML's last `think` step so participants stay connected through the
-broadcast window:
+→ (wait) → stop-broadcast → end-events → **cleanup-run** as a single process,
+auto-extending the Artillery YAML's last `think` step so participants stay
+connected through the broadcast window. `cleanup-run` always runs, even if
+Artillery itself failed, and the process exits non-zero if it finds anything
+still open:
 
 ```bash
 ARTILLERY_SCRIPT=tests/dial-out-payload-example.yml npm run load-test
@@ -92,6 +98,62 @@ Key env vars: `DIAL_IN_WAIT_MS`, `BROADCAST_DURATION_MS`, `HANGUP_BUFFER_MS`,
 registration-plan/CSV instead of regenerating). Use this when the scenario
 includes a broadcast; for a plain dial-out-rate test the manual steps above
 give clearer progress visibility and let you stop between phases.
+
+## Post-run verification — always close and confirm every launched call
+
+**Why this exists:** the Q3 load test (7,500 callers, ~12.5/sec) left ~1,648
+legs orphaned on stage — not indefinitely, but until Chime's own internal
+call-duration ceiling force-terminated them roughly **48 hours** later, racking
+up PSTN cost the whole time (see the "Q3 Chime Load Test — Orphaned Calls & AWS
+Cost Impact" incident doc, and the fix in events-streaming PR #2923). Root
+cause: under Polly (speech synthesis) throttling, `ACTION_FAILED` events can
+carry an unrecognized action type or a substituted silent prompt that the
+state machine has no handler for — the Lambda then returns no actions to
+Chime and the leg is left open. That code path is now fixed, but load-test
+tooling must not depend on it being the only safety net.
+
+**`npm run end-event` alone is not a cleanup step** — it only calls
+`updateEventStatus(status: ENDED)`, which has no cascade-hangup effect on live
+Chime legs. Confirmed by reading the mutation's implementation. Don't rely on
+it to close calls.
+
+**A meetingId-keyed hangup (e.g. a `conferenceHangup` mutation) can't reach
+every leg either** — it can only act on participants that already resolved a
+real meeting id. Legs that fail early in the IVR (stuck at `meeting_id: 0`,
+never authenticated) aren't associated with any meeting yet, so a
+meetingId-based hangup silently misses exactly the class of leg that caused
+the Q3 incident.
+
+**The one identifier every launched call has from the first millisecond** is
+the Chime `transactionId` returned by `CreateSipMediaApplicationCall`. Run
+`npm run cleanup-run` after every run (aborted or not — the one-shot
+orchestrator already does this automatically):
+
+```bash
+npm run cleanup-run                 # defaults to the latest run in RUN_STATE_PATH
+RUN_STATE_PATH=data/run-state.shard1.ndjson RUN_ID=<id> npm run cleanup-run
+```
+
+It (1) sweeps every `transactionId` captured in `run-state.ndjson` against
+`UpdateSipMediaApplicationCall` on the origination SMA — `NotFoundException`
+means Chime already has no record of it (fine), anything else means a leg was
+genuinely still open and has now been closed; (2) cross-checks the target
+participants table for any row still `call_connection_state=CONNECTED` whose
+`meeting_id` belongs to this run, and sweeps those rows' own `transaction_id`
+too (it can differ from the launch-time one after a retry); (3) prints a
+pass/fail summary and writes `data/cleanup-report.json`, exiting non-zero if
+anything couldn't be confirmed closed.
+
+`transactionId` is only present in `run-state.ndjson` entries written after
+this capability was added (`lib/scenarioSteps.js` `saveParticipantResult`) —
+older run-state files will report "no transactionId" for every row and can't
+be swept this way; re-run to get a sweepable run-state file.
+
+**Rate discipline is still the primary defense** — cleanup closes legs after
+the fact, but the Polly-throttling root cause is a burst-rate problem. Keep
+using the proven-safe rates in "Rate limits" below (prefer `dial-out-ramp.yml`
+to find the current knee before any full-scale run) rather than relying on
+cleanup to paper over avoidable throttling.
 
 ### Rate-ramp scenarios (finding the throttle knee)
 
@@ -169,5 +231,5 @@ Origination side (profile `LOAD_TEST_CHIME_AWS_PROFILE`, us-east-1 — this is p
 - `create-events`/`end-event` create/end **real** events wherever `EP_API_GRAPHQL_BASE_URL`/`EP_COMPANY_ID` point — this now includes prod as a valid target (read the current `.env` to see which env is live; don't assume it's always stage). Confirm the target env with the user before creating events, and always re-confirm before pointing at prod if it wasn't already the agreed target.
 - Copy `.env.example` → `.env` to bootstrap a new environment; `.env` itself stays gitignored and is never committed.
 - Never commit: `.env`, `data/*.csv`, `data/registration-plan*.json`, `data/events-plan*.json`, run artifacts (all gitignored).
-- After any aborted run, offer `npm run end-event` — lingering calls hold real PSTN legs and origination-account Chime capacity. Confirmed safe to run even before events were started.
-- Real-world time pressure (e.g. an imminent unrelated production event on the same platform) can force stopping mid-setup. If so: stop any in-flight background script first (`TaskStop`/Ctrl-C), then run `npm run end-event` regardless of how far setup got — it's a no-op-safe blanket cleanup for any events already created via `create-events`, started or not.
+- After any aborted run, offer `npm run end-event` **and** `npm run cleanup-run` — `end-event` only ends the event record; `cleanup-run` is what actually confirms/forces every launched Chime leg closed (see "Post-run verification" above). Both are confirmed safe to run even before events were started.
+- Real-world time pressure (e.g. an imminent unrelated production event on the same platform) can force stopping mid-setup. If so: stop any in-flight background script first (`TaskStop`/Ctrl-C), then run `npm run end-event` regardless of how far setup got — it's a no-op-safe blanket cleanup for any events already created via `create-events`, started or not — then `npm run cleanup-run` to verify no call was left open.

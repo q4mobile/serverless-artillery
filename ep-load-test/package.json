@@ -9,6 +9,7 @@
     "register-analysts": "tsx scripts/register-analysts.ts",
     "start-event": "tsx scripts/start-event.ts",
     "end-event": "tsx scripts/end-event.ts",
+    "cleanup-run": "tsx scripts/cleanup-run.ts",
     "start-broadcast": "tsx scripts/start-broadcast.ts",
     "stop-broadcast": "tsx scripts/stop-broadcast.ts",
     "report": "tsx scripts/report-load-test.ts",
