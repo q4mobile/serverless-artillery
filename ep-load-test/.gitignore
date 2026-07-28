@@ -3,7 +3,12 @@ data/run-state.ndjson
 data/run-report.json
 data/analysts-payload.csv
 data/registration-plan.json
+data/analysts-payload.*.csv
+data/events-plan.*.json
+data/registration-plan.*.json
+report/
 scripts/*.key
 scripts/nexmo-config.sh
 .env
 .env.*
+!.env.example

@@ -9,6 +9,9 @@
  *     ↳ after BROADCAST_DURATION_MS: stop-broadcasts
  *     ↳ await Artillery exit
  *  5. end-events        — transition all meetings STARTED → ENDED  (always runs)
+ *  6. cleanup-run        — sweep every launched Chime transaction id and verify
+ *                          nothing is left CONNECTED (always runs; end-events
+ *                          alone does not hang up any Chime leg)
  *
  * Analyst stay time is automatically patched in the Artillery YAML so participants
  * remain connected through the full broadcast window.
@@ -39,6 +42,7 @@ import { startEvents } from './start-event';
 import { startBroadcasts } from './start-broadcast';
 import { stopBroadcasts } from './stop-broadcast';
 import { endEvents } from './end-event';
+import { cleanupRun } from './cleanup-run';
 import { loadStartConfigFromEnv, loadStopConfigFromEnv } from './broadcast-config';
 import { writeJsonLog } from './register-analysts-logging';
 
@@ -319,14 +323,40 @@ async function run(): Promise<void> {
     writeJsonLog(deps, { lvl: 'INFO', evt: 'ep.load-test.phase', msg: 'Phase 4: Ending events' });
     await endEvents(broadcastConfig);
 
+    // end-event only flips status to ENDED — it does not hang up any Chime leg.
+    // cleanupRun sweeps every launched transactionId (covers legs that failed
+    // before ever reaching a real meeting id, which end-event/conferenceHangup
+    // can't reach) and cross-checks the target table for leftover CONNECTED rows.
+    writeJsonLog(deps, { lvl: 'INFO', evt: 'ep.load-test.phase', msg: 'Phase 5: Verifying all calls are closed' });
+    let cleanupOk = true;
+    try {
+      const cleanup = await cleanupRun();
+      cleanupOk = cleanup.ok;
+      writeJsonLog(deps, {
+        lvl: cleanup.ok ? 'INFO' : 'ERROR',
+        evt: cleanup.ok ? 'ep.load-test.cleanup.ok' : 'ep.load-test.cleanup.incomplete',
+        msg: cleanup.ok ? 'All launched calls confirmed closed' : 'Some calls could not be confirmed closed — see cleanup-report.json',
+        leftoverRowsFound: cleanup.leftoverRowsFound,
+      });
+    } catch (err) {
+      cleanupOk = false;
+      writeJsonLog(deps, {
+        lvl: 'ERROR',
+        evt: 'ep.load-test.cleanup.error',
+        msg: err instanceof Error ? err.message : String(err),
+      });
+    }
+
     writeJsonLog(deps, {
-      lvl: artilleryExitCode === 0 ? 'INFO' : 'WARN',
+      lvl: artilleryExitCode === 0 && cleanupOk ? 'INFO' : 'WARN',
       evt: 'ep.load-test.complete',
       msg: 'Load test complete',
       artilleryExitCode,
+      cleanupOk,
     });
 
     if (artilleryExitCode !== 0) process.exit(artilleryExitCode);
+    if (!cleanupOk) process.exit(1);
   } finally {
     if (tempScript) {
       try { unlinkSync(tempScript); } catch { /* ignore */ }
