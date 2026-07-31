@@ -9,7 +9,7 @@
  * load-test SMA returns NotFoundException for conference-side legs and looks clean
  * while they stay billable. See cleanup-run.ts header for the full explanation.
  *
- * Usage: MEETING_ID=339054240 npx tsx scripts/hangup-meeting-leftovers.ts
+ * Usage: MEETING_ID=<meetingId> npx tsx scripts/hangup-meeting-leftovers.ts
  */
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';

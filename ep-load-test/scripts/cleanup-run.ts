@@ -15,8 +15,7 @@
  * LOAD_TEST_TO_PHONE (CONFERENCE_SMA_ID). A transactionId is scoped to one SMA:
  * probing the conference-side id against the load-test SMA returns NotFoundException,
  * which reads as "already closed". Sweeping a single SMA therefore misses half the legs
- * and prints a green all-clear — that is exactly how ~1,000 legs stayed billable for
- * ~2h on 2026-07-30 while this script reported success.
+ * and still prints a green all-clear.
  *
  * The one identifier every launched call has from the first millisecond is the
  * Chime transactionId returned by CreateSipMediaApplicationCall. This script:
@@ -52,7 +51,7 @@
  * Legs the state machine refuses to drop: if a participant row is already DISCONNECTED
  * the conference SMA ignores `action: hangup`, leaving the leg up forever. Deleting the
  * Chime meeting (primary + replicas) drops every leg bridged into it and is the
- * reliable escape hatch — see docs in reports/ for the 2026-07-30 incident.
+ * reliable escape hatch.
  */
 
 import { realpathSync } from 'node:fs';

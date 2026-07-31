@@ -26,11 +26,11 @@ function loadConfig() {
     region: readEnvTrim("AWS_REGION", "us-east-1") || "us-east-1",
     smaId: normalizeSmaId(readEnvTrim("LOAD_TEST_SMA_ID")),
     // LOAD_TEST_TO_PHONE is answered by the events-streaming SMA, which lives in the
-    // same AWS account. Every analyst therefore burns TWO legs against the
+    // same AWS account. Every analyst therefore burns two legs against the
     // "SIP Media Application Active Call Limit" quota: the outbound one we create on
-    // smaId, and the inbound one Chime raises on this SMA. Cleanup MUST sweep both —
+    // smaId, and the inbound one Chime raises on this SMA. Cleanup must sweep both —
     // sweeping only smaId returns NotFoundException for the inbound half and reports
-    // a false all-clear (this is what stranded ~1,000 legs on 2026-07-30).
+    // a false all-clear.
     conferenceSmaId: conferenceRaw ? normalizeSmaId(conferenceRaw) : undefined,
     fromPhone: readEnvTrim("LOAD_TEST_FROM_PHONE"),
     toPhone: readEnvTrim("LOAD_TEST_TO_PHONE"),

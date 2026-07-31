@@ -6,8 +6,6 @@ data/registration-plan.json
 data/analysts-payload.*.csv
 data/events-plan.*.json
 data/registration-plan.*.json
-# Per-run variants (RUN_STATE_PATH=data/run-state.<label>.ndjson) and the
-# cleanup verification report — regenerated every run, never worth tracking.
 data/run-state.*.ndjson
 data/cleanup-report*.json
 report/
