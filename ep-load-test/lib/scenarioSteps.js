@@ -302,7 +302,9 @@ function createSteps({
         markFailed(events, context, err);
         return done(err);
       }
-      await sleep(4000);
+      // Digits sent before the PIN prompt finishes are dropped by Chime, stalling the
+      // participant at AWAITING_MEETING_PIN. 9000ms clears it; 4000ms did not.
+      await sleep(9000);
       await chime.sendSipUpdate(
         v.transactionId,
         { loadTestDigits: `${pinStr}#`, loadTestToneMs: "200" },

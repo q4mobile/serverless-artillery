@@ -21,9 +21,17 @@ function readEnvTrim(key, fallback = "") {
 
 function loadConfig() {
   const productionRaw = readEnvTrim("PRODUCTION_SMA_ID");
+  const conferenceRaw = readEnvTrim("CONFERENCE_SMA_ID");
   return {
     region: readEnvTrim("AWS_REGION", "us-east-1") || "us-east-1",
     smaId: normalizeSmaId(readEnvTrim("LOAD_TEST_SMA_ID")),
+    // LOAD_TEST_TO_PHONE is answered by the events-streaming SMA, which lives in the
+    // same AWS account. Every analyst therefore burns two legs against the
+    // "SIP Media Application Active Call Limit" quota: the outbound one we create on
+    // smaId, and the inbound one Chime raises on this SMA. Cleanup must sweep both —
+    // sweeping only smaId returns NotFoundException for the inbound half and reports
+    // a false all-clear.
+    conferenceSmaId: conferenceRaw ? normalizeSmaId(conferenceRaw) : undefined,
     fromPhone: readEnvTrim("LOAD_TEST_FROM_PHONE"),
     toPhone: readEnvTrim("LOAD_TEST_TO_PHONE"),
     productionSmaId: productionRaw

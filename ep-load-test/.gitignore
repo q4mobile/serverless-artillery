@@ -6,6 +6,8 @@ data/registration-plan.json
 data/analysts-payload.*.csv
 data/events-plan.*.json
 data/registration-plan.*.json
+data/run-state.*.ndjson
+data/cleanup-report*.json
 report/
 scripts/*.key
 scripts/nexmo-config.sh
